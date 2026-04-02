@@ -377,6 +377,7 @@ th.num{text-align:right;}
     <div class="stitle">Lot Status <small>Full lot-wise tracking</small></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-ghost btn-sm" onclick="buildLots()">↺ Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleColPanel()">⚙ Columns</button>
       <button class="btn btn-ghost btn-sm" onclick="printTab('lots')">🖨 Print</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadExcel('lots')" style="color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
     </div>
@@ -389,15 +390,18 @@ th.num{text-align:right;}
     <select id="fLTpi" onchange="buildLots()" style="width:110px;"><option value="">All TPI</option></select>
     <select id="fLShd" onchange="buildLots()" style="width:130px;"><option value="">All Shades</option></select>
   </div>
-  <div class="tw"><table>
-    <thead><tr>
-      <th>Lot No.</th><th>Double Lot</th><th>Company</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th><th>Double Cone Tip</th>
-      <th>Recv Date</th><th class="num" style="color:var(--amber);">Ageing (days)</th>
-      <th class="num">Recv (kg)</th><th class="num">Return (kg)</th><th class="num">Net Recv (kg)</th><th class="num">Disp (kg)</th><th class="num">Balance (kg)</th>
-      <th class="num">Recv Bags</th><th class="num">Disp Bags</th><th class="num">Bal Bags</th>
-      <th class="num">Shortage%</th><th class="num">Allowed%</th><th class="num" style="color:var(--amber);">Pending Qty (kg)</th>
-      <th style="min-width:110px;">Progress</th><th>Status</th><th>Action</th>
-    </tr></thead>
+
+  <!-- COLUMN VISIBILITY PANEL -->
+  <div id="colPanel" style="display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh);">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Show / Hide Columns</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;" id="colToggles"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="setAllCols(true)">Show All</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAllCols(false)">Hide All</button>
+    </div>
+  </div>
+  <div class="tw" id="lotTableWrap"><table>
+    <thead id="lotThead"><tr id="lotTheadRow"></tr></thead>
     <tbody id="tbL"></tbody>
   </table></div>
   <div id="emL" class="empty" style="display:none;"><div class="empty-ico">🗂</div><p>No lots match the filters.</p></div>
@@ -767,7 +771,7 @@ th.num{text-align:right;}
       <div class="fg"><label>Challan No.</label><input type="text" id="er_challan"></div>
       <div class="fg"><label>Company</label><select id="er_co"></select></div>
       <div class="fg"><label>Lot No.</label><input type="text" id="er_lot"></div>
-      <div class="fg"><label>Alt. Lot No.</label><input type="text" id="er_altlot"></div>
+      <div class="fg"><label>Double Lot No.</label><input type="text" id="er_altlot"></div>
     </div>
     <div class="grid g6" style="margin-bottom:12px;">
       <div class="fg"><label>Shade</label><input type="text" id="er_shade"></div>
@@ -776,6 +780,12 @@ th.num{text-align:right;}
       <div class="fg"><label>Blend</label><select id="er_blend"></select></div>
       <div class="fg"><label>Bags</label><input type="number" id="er_bags" min="0" step="1"></div>
       <div class="fg"><label>Weight (kg)</label><input type="number" id="er_weight" min="0" step="0.01"></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:12px;">
+      <div class="fg"><label>Single Cone Tip</label><input type="text" id="er_singleconetip" placeholder="e.g. White"></div>
+      <div class="fg"><label>Double Cone Tip</label><input type="text" id="er_doubleconetip" placeholder="e.g. Yellow"></div>
+      <div class="fg"><label>Shade Card No.</label><input type="text" id="er_shadecard" placeholder="e.g. SC-042"></div>
+      <div class="fg"><label>Paper Cone Received</label><input type="number" id="er_papercone" min="0" step="1" placeholder="e.g. 500"></div>
     </div>
     <div class="grid g4" style="margin-bottom:14px;">
       <div class="fg"><label>Job Work Rate (₹/kg)</label><input type="number" id="er_rate" min="0" step="0.01"></div>
@@ -1165,6 +1175,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Load any persisted overrides + local data
   loadCfg(); loadLocal(); loadMaster();
+  initColVis();
   populateAll(); renderAll();
 
   // Init Google Auth — retry until GIS script is loaded (async defer)
@@ -1199,6 +1210,44 @@ function saveMaster() {
   populateAll(); renderTagsAll();
   closeModal('masterModal');
   toast('Master data saved!', 'ok');
+  // Sync master data to Google Sheets so all users see same lists
+  syncMasterToSheets();
+}
+
+async function syncMasterToSheets() {
+  if (!cfg.sid || cfg.sid === 'YOUR_SPREADSHEET_ID_HERE') return;
+  const token = await getValidToken(); if (!token) return;
+  try {
+    // Write entire master data as a single JSON row to MasterData tab
+    const val = JSON.stringify(master);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent('MasterData!A1')}?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ values: [['master_data', val, new Date().toISOString()]] })
+      }
+    );
+  } catch(e) { console.warn('syncMaster:', e); }
+}
+
+async function loadMasterFromSheets() {
+  if (!cfg.sid || cfg.sid === 'YOUR_SPREADSHEET_ID_HERE') return;
+  const token = await getValidToken(); if (!token) return;
+  try {
+    const r = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent('MasterData!A1:C1')}`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const d = await r.json();
+    if (d.values && d.values[0] && d.values[0][1]) {
+      const remote = JSON.parse(d.values[0][1]);
+      // Merge remote into local — remote wins (latest saved by any user)
+      master = { ...master, ...remote };
+      localStorage.setItem('yt2_master', JSON.stringify(master));
+      populateAll();
+    }
+  } catch(e) { console.warn('loadMasterFromSheets:', e); }
 }
 function addMaster(type) {
   const map = { co:'newCo', cnt:'newCnt', bld:'newBld' };
@@ -1303,7 +1352,9 @@ function initGoogleAuth() {
         g('firstRunModal').classList.remove('open');
         // Ensure sheet tabs exist with proper headers, then sync
         if (cfg.sid && cfg.sid !== 'YOUR_SPREADSHEET_ID_HERE') {
-          ensureTabs().then(() => syncSheets());
+          ensureTabs().then(() => {
+            loadMasterFromSheets().then(() => syncSheets());
+          });
         }
       });
     }
@@ -1430,7 +1481,7 @@ async function ensureTabs() {
     const spreadsheetId = cfg.sid;
 
     // Create missing sheets
-    const toCreate = ['Receipts','Dispatch','ChangeHistory'].filter(n => !existing.includes(n));
+    const toCreate = ['Receipts','Dispatch','ChangeHistory','MasterData'].filter(n => !existing.includes(n));
     if (toCreate.length) {
       const requests = toCreate.map(title => ({ addSheet: { properties: { title } } }));
       await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
@@ -1444,7 +1495,8 @@ async function ensureTabs() {
     const headerMap = {
       'Receipts':      R_HDR_LABELS,
       'Dispatch':      D_HDR_LABELS,
-      'ChangeHistory': CH_HDR_LABELS
+      'ChangeHistory': CH_HDR_LABELS,
+      'MasterData':    ['Key','Value','LastUpdated']
     };
     for (const [tab, hdr] of Object.entries(headerMap)) {
       // Check if row 1 already has data
@@ -2211,6 +2263,80 @@ function renderD() {
 // ═══════════════════════════════════════════════
 // LOT STATUS
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// LOT STATUS COLUMN VISIBILITY
+// ═══════════════════════════════════════════════
+const LOT_COLS = [
+  { key:'lotNo',       label:'Lot No.',         def:true  },
+  { key:'altLot',      label:'Double Lot',       def:true  },
+  { key:'company',     label:'Company',          def:true  },
+  { key:'shade',       label:'Shade',            def:true  },
+  { key:'count',       label:'Count',            def:true  },
+  { key:'tpi',         label:'TPI',              def:true  },
+  { key:'blend',       label:'Blend',            def:false },
+  { key:'dct',         label:'Double Cone Tip',  def:false },
+  { key:'recvDate',    label:'Recv Date',         def:true  },
+  { key:'ageing',      label:'Ageing (days)',     def:true  },
+  { key:'recvKg',      label:'Recv (kg)',         def:true  },
+  { key:'returnKg',    label:'Return (kg)',       def:false },
+  { key:'netRecvKg',   label:'Net Recv (kg)',     def:true  },
+  { key:'dispKg',      label:'Disp (kg)',         def:true  },
+  { key:'balKg',       label:'Balance (kg)',      def:true  },
+  { key:'recvBags',    label:'Recv Bags',         def:false },
+  { key:'dispBags',    label:'Disp Bags',         def:false },
+  { key:'balBags',     label:'Bal Bags',          def:false },
+  { key:'shortage',    label:'Shortage %',        def:false },
+  { key:'allowed',     label:'Allowed %',         def:true  },
+  { key:'pending',     label:'Pending Qty (kg)',  def:true  },
+  { key:'progress',    label:'Progress',          def:true  },
+  { key:'status',      label:'Status',            def:true  },
+  { key:'action',      label:'Action',            def:true  },
+];
+
+let lotColVis = {};
+
+function initColVis() {
+  const saved = localStorage.getItem('yt2_colvis');
+  if (saved) lotColVis = JSON.parse(saved);
+  else LOT_COLS.forEach(c => lotColVis[c.key] = c.def);
+  renderColToggles();
+}
+
+function renderColToggles() {
+  const wrap = g('colToggles');
+  if (!wrap) return;
+  wrap.innerHTML = LOT_COLS.map(c => {
+    const on = lotColVis[c.key] !== false;
+    return `<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid ${on?'var(--blue)':'var(--border)'};background:${on?'var(--blue-dim)':'transparent'};cursor:pointer;font-size:11px;color:${on?'var(--blue)':'var(--text3)'};">
+      <input type="checkbox" ${on?'checked':''} onchange="toggleCol('${c.key}',this.checked)" style="width:auto;display:none;">
+      ${on?'✓ ':''} ${c.label}
+    </label>`;
+  }).join('');
+}
+
+function toggleCol(key, val) {
+  lotColVis[key] = val;
+  localStorage.setItem('yt2_colvis', JSON.stringify(lotColVis));
+  renderColToggles();
+  buildLots();
+}
+
+function setAllCols(val) {
+  LOT_COLS.forEach(c => lotColVis[c.key] = val);
+  localStorage.setItem('yt2_colvis', JSON.stringify(lotColVis));
+  renderColToggles();
+  buildLots();
+}
+
+function toggleColPanel() {
+  const p = g('colPanel');
+  p.style.display = p.style.display === 'none' ? '' : 'none';
+}
+
+function colVisible(key) {
+  return lotColVis[key] !== false;
+}
+
 function buildLots() {
   const s=g('srchL').value.toLowerCase(), co=g('fLCo').value, st=g('fLSt').value,
         cnt=g('fLCnt').value, tpi=g('fLTpi').value, shd=g('fLShd').value;
@@ -2302,64 +2428,89 @@ function buildLots() {
   rows.sort((a,b)=>b.date.localeCompare(a.date));
 
   const tb=g('tbL'), em=g('emL');
-  if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
+  if(!rows.length){tb.innerHTML='';em.style.display='block';
+    g('lotTheadRow').innerHTML=''; return;} em.style.display='none';
+
+  // Build header based on visible columns
+  const colDefs = [
+    { key:'lotNo',     th:`<th>Lot No.</th>` },
+    { key:'altLot',    th:`<th>Double Lot</th>` },
+    { key:'company',   th:`<th>Company</th>` },
+    { key:'shade',     th:`<th>Shade</th>` },
+    { key:'count',     th:`<th>Count</th>` },
+    { key:'tpi',       th:`<th>TPI</th>` },
+    { key:'blend',     th:`<th>Blend</th>` },
+    { key:'dct',       th:`<th>Double Cone Tip</th>` },
+    { key:'recvDate',  th:`<th>Recv Date</th>` },
+    { key:'ageing',    th:`<th class="num" style="color:var(--amber);">Ageing (days)</th>` },
+    { key:'recvKg',    th:`<th class="num">Recv (kg)</th>` },
+    { key:'returnKg',  th:`<th class="num">Return (kg)</th>` },
+    { key:'netRecvKg', th:`<th class="num">Net Recv (kg)</th>` },
+    { key:'dispKg',    th:`<th class="num">Disp (kg)</th>` },
+    { key:'balKg',     th:`<th class="num">Balance (kg)</th>` },
+    { key:'recvBags',  th:`<th class="num">Recv Bags</th>` },
+    { key:'dispBags',  th:`<th class="num">Disp Bags</th>` },
+    { key:'balBags',   th:`<th class="num">Bal Bags</th>` },
+    { key:'shortage',  th:`<th class="num">Shortage%</th>` },
+    { key:'allowed',   th:`<th class="num">Allowed%</th>` },
+    { key:'pending',   th:`<th class="num" style="color:var(--amber);">Pending Qty (kg)</th>` },
+    { key:'progress',  th:`<th style="min-width:110px;">Progress</th>` },
+    { key:'status',    th:`<th>Status</th>` },
+    { key:'action',    th:`<th>Action</th>` },
+  ];
+  const thead = g('lotTheadRow');
+  thead.innerHTML = colDefs.filter(c=>colVisible(c.key)).map(c=>c.th).join('');
+
+  const cv = k => colVisible(k);
 
   tb.innerHTML=rows.map(l=>{
     const sColor = l.allowed>0
       ? (l.shortagePct<=l.allowed?'var(--green)':l.shortagePct<=(l.allowed*1.5)?'var(--amber)':'var(--red)')
       : 'var(--text2)';
     const hasReturn = l.returnKg>0;
-
-    // Pending Qty = RecvKg − (Allowed% × RecvKg) − DispKg − ReturnKg
-    // i.e. how much yarn still needs to be dispatched after accounting for allowed wastage
     const allowedWastageKg = l.recvKg * (l.allowed/100);
     const pendingQty = Math.max(0, l.recvKg - allowedWastageKg - l.dispKg - l.returnKg);
     const pendingColor = pendingQty <= 0 ? 'var(--green)' : l.cs==='Completed'?'var(--text3)':'var(--amber)';
-
-    // Mark Done button — hide for Received and Returned statuses (no dispatch happened)
     const isReceived = l.cs === 'Received' || l.cs === 'Returned';
     const isManuallyCompleted = completedLots.has(l.lotNo);
     const isAutoCompleted = l.cs === 'Completed' && !isManuallyCompleted;
     let actionCell;
     if (isManuallyCompleted) {
-      actionCell = `<button class="btn btn-ghost btn-sm" onclick="toggleLotComplete('${l.lotNo}')" style="color:var(--text3);font-size:10px;" title="Unmark as completed">↩ Unmark</button>`;
+      actionCell = `<button class="btn btn-ghost btn-sm" onclick="toggleLotComplete('${l.lotNo}')" style="color:var(--text3);font-size:10px;">↩ Unmark</button>`;
     } else if (isAutoCompleted) {
       actionCell = `<span style="font-size:10px;color:var(--green);">Auto ✓</span>`;
     } else if (isReceived) {
       actionCell = `<span style="font-size:10px;color:var(--text3);">—</span>`;
     } else {
-      actionCell = `<button class="btn btn-ghost btn-sm" onclick="toggleLotComplete('${l.lotNo}')" style="color:var(--green);border-color:rgba(92,184,122,.3);font-size:10px;" title="Mark this lot as completed">✓ Mark Done</button>`;
+      actionCell = `<button class="btn btn-ghost btn-sm" onclick="toggleLotComplete('${l.lotNo}')" style="color:var(--green);border-color:rgba(92,184,122,.3);font-size:10px;">✓ Mark Done</button>`;
     }
-
-    return `<tr>
-    <td style="color:var(--amber);font-weight:600">${l.lotNo}</td>
-    <td style="color:var(--text3)">${l.altLot||'—'}</td>
-    <td style="font-weight:500">${l.company}</td>
-    <td>${l.shade||'—'}</td>
-    <td><span class="badge b-blue">${l.count||'—'}</span></td>
-    <td>${l.tpi||'—'}</td>
-    <td style="color:var(--text3)">${l.blend||'—'}</td>
-    <td>${l.doubleConeTip||'—'}</td>
-    <td>${l.date}</td>
-    <td class="num" style="font-weight:700;color:${l.ageColor};">${l.ageing !== null ? l.ageing + ' d' : '—'}</td>
-    <td class="num">${fmtKg(l.recvKg)}</td>
-    <td class="num" style="color:${hasReturn?'var(--red)':'var(--text3)'};">${hasReturn?'−'+fmtKg(l.returnKg):'—'}</td>
-    <td class="num" style="font-weight:600;color:${hasReturn?'var(--amber)':'var(--text)'}">${fmtKg(l.netRecvKg)}</td>
-    <td class="num">${fmtKg(l.dispKg)}</td>
-    <td class="num" style="font-weight:700;color:${l.balKg>0?'var(--green)':'var(--text3)'}">${fmtKg(l.balKg)}</td>
-    <td class="num">${l.recvBags}</td>
-    <td class="num">${l.dispBags}</td>
-    <td class="num" style="font-weight:600">${l.balBags}</td>
-    <td class="num" style="font-weight:700;color:${sColor}">${l.shortagePct.toFixed(2)}%</td>
-    <td class="num" style="color:var(--text3)">${l.allowed>0?l.allowed+'%':'—'}</td>
-    <td class="num" style="font-weight:700;color:${pendingColor};">${l.allowed>0 ? fmtKg(pendingQty) : '—'}</td>
-    <td><div class="pbar-wrap">
-      <div class="pbar"><div class="pbar-fill" style="width:${l.pct}%;background:${l.pct>=100?'var(--green)':l.pct>50?'var(--amber)':'var(--blue)'}"></div></div>
-      <div class="ppct">${l.pct.toFixed(0)}%</div>
-    </div></td>
-    <td>${lotBadge(l.cs)}</td>
-    <td>${actionCell}</td>
-  </tr>`;
+    const cells = [
+      { key:'lotNo',     td:`<td style="color:var(--blue);font-weight:600">${l.lotNo}</td>` },
+      { key:'altLot',    td:`<td style="color:var(--text3)">${l.altLot||'—'}</td>` },
+      { key:'company',   td:`<td style="font-weight:500">${l.company}</td>` },
+      { key:'shade',     td:`<td>${l.shade||'—'}</td>` },
+      { key:'count',     td:`<td><span class="badge b-blue">${l.count||'—'}</span></td>` },
+      { key:'tpi',       td:`<td>${l.tpi||'—'}</td>` },
+      { key:'blend',     td:`<td style="color:var(--text3)">${l.blend||'—'}</td>` },
+      { key:'dct',       td:`<td>${l.doubleConeTip||'—'}</td>` },
+      { key:'recvDate',  td:`<td>${l.date}</td>` },
+      { key:'ageing',    td:`<td class="num" style="font-weight:700;color:${l.ageColor};">${l.ageing !== null ? l.ageing + ' d' : '—'}</td>` },
+      { key:'recvKg',    td:`<td class="num">${fmtKg(l.recvKg)}</td>` },
+      { key:'returnKg',  td:`<td class="num" style="color:${hasReturn?'var(--red)':'var(--text3)'};">${hasReturn?'−'+fmtKg(l.returnKg):'—'}</td>` },
+      { key:'netRecvKg', td:`<td class="num" style="font-weight:600;color:${hasReturn?'var(--amber)':'var(--text)'}">${fmtKg(l.netRecvKg)}</td>` },
+      { key:'dispKg',    td:`<td class="num">${fmtKg(l.dispKg)}</td>` },
+      { key:'balKg',     td:`<td class="num" style="font-weight:700;color:${l.balKg>0?'var(--green)':'var(--text3)'}">${fmtKg(l.balKg)}</td>` },
+      { key:'recvBags',  td:`<td class="num">${l.recvBags}</td>` },
+      { key:'dispBags',  td:`<td class="num">${l.dispBags}</td>` },
+      { key:'balBags',   td:`<td class="num" style="font-weight:600">${l.balBags}</td>` },
+      { key:'shortage',  td:`<td class="num" style="font-weight:700;color:${sColor}">${l.shortagePct.toFixed(2)}%</td>` },
+      { key:'allowed',   td:`<td class="num" style="color:var(--text3)">${l.allowed>0?l.allowed+'%':'—'}</td>` },
+      { key:'pending',   td:`<td class="num" style="font-weight:700;color:${pendingColor};">${l.allowed>0?fmtKg(pendingQty):'—'}</td>` },
+      { key:'progress',  td:`<td><div class="pbar-wrap"><div class="pbar"><div class="pbar-fill" style="width:${l.pct}%;background:${l.pct>=100?'var(--green)':l.pct>50?'var(--amber)':'var(--blue)'}"></div></div><div class="ppct">${l.pct.toFixed(0)}%</div></div></td>` },
+      { key:'status',    td:`<td>${lotBadge(l.cs)}</td>` },
+      { key:'action',    td:`<td>${actionCell}</td>` },
+    ];
+    return `<tr>${cells.filter(c=>cv(c.key)).map(c=>c.td).join('')}</tr>`;
   }).join('');
 }
 
@@ -2472,28 +2623,30 @@ function openEditModal(type, id) {
   if (type === 'recv') {
     const r = recv.find(x => x.id === id);
     if (!r) return;
-    // Populate company/count/blend selects first
     fillSel('er_co',   master.companies, '— Select —');
     fillSel('er_count',master.counts,    '— Select —');
     fillSel('er_blend',master.blends,    '— Select —');
-    // Fill values
-    g('er_id').value       = r.id;
-    g('er_date').value     = r.date;
-    g('er_challan').value  = r.challan;
+    g('er_id').value            = r.id;
+    g('er_date').value          = r.date;
+    g('er_challan').value       = r.challan;
     setSelVal('er_co',    r.company);
-    g('er_lot').value      = r.lotNo;
-    g('er_altlot').value   = r.altLot||'';
-    g('er_shade').value    = r.shade||'';
+    g('er_lot').value           = r.lotNo;
+    g('er_altlot').value        = r.altLot||'';
+    g('er_shade').value         = r.shade||'';
     setSelVal('er_count', r.count);
-    g('er_tpi').value      = r.tpi||'';
+    g('er_tpi').value           = r.tpi||'';
     setSelVal('er_blend', r.blend);
-    g('er_bags').value     = r.bags;
-    g('er_weight').value   = r.weight;
-    g('er_rate').value     = r.rate||'';
-    g('er_shortage').value = r.allowedShortage||'';
-    g('er_vehicle').value  = r.vehicle||'';
-    g('er_status').value   = r.status||'Received';
-    g('er_remarks').value  = r.remarks||'';
+    g('er_bags').value          = r.bags;
+    g('er_weight').value        = r.weight;
+    g('er_rate').value          = r.rate||'';
+    g('er_shortage').value      = r.allowedShortage||'';
+    g('er_vehicle').value       = r.vehicle||'';
+    g('er_status').value        = r.status||'Received';
+    g('er_remarks').value       = r.remarks||'';
+    g('er_singleconetip').value = r.singleConeTip||'';
+    g('er_doubleconetip').value = r.doubleConeTip||'';
+    g('er_shadecard').value     = r.shadeCard||'';
+    g('er_papercone').value     = r.paperCone||'';
     openModal('editRecvModal');
   } else {
     const d = disp.find(x => x.id === id);
@@ -2543,7 +2696,11 @@ function saveEdit(type) {
       allowedShortage: parseFloat(g('er_shortage').value)||0,
       vehicle:         g('er_vehicle').value.trim(),
       status:          g('er_status').value,
-      remarks:         g('er_remarks').value.trim()
+      remarks:         g('er_remarks').value.trim(),
+      singleConeTip:   g('er_singleconetip').value.trim(),
+      doubleConeTip:   g('er_doubleconetip').value.trim(),
+      shadeCard:       g('er_shadecard').value.trim(),
+      paperCone:       parseFloat(g('er_papercone').value)||0
     };
     saveLocal(); renderAll();
     appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','EDIT',`Lot ${recv[idx].lotNo} | ${recv[idx].company}`]);
