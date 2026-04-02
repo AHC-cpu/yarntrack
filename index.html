@@ -1,0 +1,3650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YarnTrack — Twisting Unit</title>
+<style>
+:root{
+  --bg:#e8edf4;
+  --surf:#ffffff;
+  --surf2:#f0f4f9;
+  --surf3:#e4eaf3;
+  --border:#c8d3e0;
+  --amber:#2d6be4;
+  --amber-dim:rgba(45,107,228,.1);
+  --green:#1a7a50;
+  --green-dim:rgba(26,122,80,.1);
+  --red:#c0392b;
+  --red-dim:rgba(192,57,43,.1);
+  --blue:#2d6be4;
+  --blue-dim:rgba(45,107,228,.1);
+  --purple:#5b3ec8;
+  --text:#1c2940;
+  --text2:#3d5070;
+  --text3:#7a8fa8;
+  --mono:'Consolas','Courier New',monospace;
+  --head:-apple-system,'Segoe UI','Arial',sans-serif;
+  --r:8px;
+  --sh:0 1px 6px rgba(28,41,64,.08),0 4px 16px rgba(28,41,64,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--head);font-size:13px;min-height:100vh;}
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:13px 28px;background:#1c2940;border-bottom:none;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(28,41,64,.25);}
+.logo{font-family:var(--head);font-size:21px;font-weight:800;color:#ffffff;letter-spacing:-.5px;}
+.logo em{font-style:normal;color:rgba(255,255,255,.45);font-size:12px;font-family:var(--mono);font-weight:400;margin-left:8px;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.gs-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.2);font-size:11px;color:rgba(255,255,255,.6);}
+.gs-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);}
+.gs-dot.on{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);}
+.gs-dot.err{background:#f87171;}
+/* TABS */
+.tabbar{display:flex;padding:0 28px;background:#253450;border-bottom:none;}
+.tb{padding:11px 20px;background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.5);font-family:var(--head);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .18s;}
+.tb:hover{color:rgba(255,255,255,.85);}
+.tb.active{color:#ffffff;border-bottom-color:#5b9ffc;}
+/* LAYOUT */
+.main{padding:22px 28px;max-width:1500px;}
+.panel{display:none;}
+.panel.active{display:block;}
+/* CARDS */
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:18px;box-shadow:var(--sh);}
+.card-title{font-family:var(--head);font-size:13px;font-weight:700;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
+input,select,textarea{background:#fff;border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12.5px;padding:8px 11px;outline:none;width:100%;transition:border-color .15s;}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.08);}
+input[readonly]{background:var(--surf2);color:var(--text3);cursor:not-allowed;}
+select option{background:#fff;}
+.grid{display:grid;gap:12px;}
+.g2{grid-template-columns:repeat(2,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g4{grid-template-columns:repeat(4,1fr);}
+.g5{grid-template-columns:repeat(5,1fr);}
+.g6{grid-template-columns:repeat(6,1fr);}
+/* PREFILL HIGHLIGHT */
+.prefilled{border-color:var(--blue)!important;background:rgba(26,86,219,.05)!important;}
+/* AUTOFILL BADGE */
+.autofill-hint{display:none;padding:10px 14px;background:rgba(26,86,219,.06);border:1px solid rgba(26,86,219,.2);border-radius:6px;font-size:11px;color:var(--blue);margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;}
+.autofill-hint.show{display:flex;}
+/* BUTTONS */
+.btn{padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:500;transition:all .18s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
+.btn-amber{background:var(--amber);color:#ffffff;}
+.btn-amber:hover{opacity:.88;}
+.btn-green{background:var(--green);color:#ffffff;}
+.btn-green:hover{opacity:.88;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-red:hover{opacity:.88;}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-blue:hover{opacity:.88;}
+.btn-sm{padding:5px 11px;font-size:11px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+/* SECTION */
+.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.stitle{font-family:var(--head);font-size:17px;font-weight:700;color:var(--text);}
+.stitle small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--text3);margin-left:8px;}
+/* FILTERS */
+.fbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.fbar input,.fbar select{width:auto;}
+.chip{padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text3);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s;}
+.chip:hover{border-color:var(--blue);color:var(--blue);}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+/* TABLE */
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--surf2);color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:.9px;padding:9px 13px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;font-weight:700;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+tbody tr:hover{background:#edf2fb;}
+tbody tr:last-child{border-bottom:none;}
+td{padding:9px 13px;font-size:12px;white-space:nowrap;color:var(--text);}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+th.num{text-align:right;}
+/* BADGES */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;}
+.b-green{background:#e0f2e9;color:#14653e;border:1px solid #a8d9be;}
+.b-amber{background:#e8effe;color:#1d52b8;border:1px solid #b3c8f5;}
+.b-red{background:#fce8e6;color:#a82214;border:1px solid #f0b4ae;}
+.b-blue{background:#e8effe;color:#2d6be4;border:1px solid #b3c8f5;}
+.b-purple{background:#ede8fc;color:#4a2fa8;border:1px solid #c5b8f0;}
+/* KPI CARDS */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
+.kcard{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kc-amber::before{background:var(--amber);}
+.kc-green::before{background:var(--green);}
+.kc-red::before{background:var(--red);}
+.kc-blue::before{background:var(--blue);}
+.kc-purple::before{background:var(--purple);}
+.klabel{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px;}
+.kval{font-family:var(--head);font-size:26px;font-weight:800;line-height:1;margin-bottom:3px;}
+.kc-amber .kval{color:var(--amber);}.kc-green .kval{color:var(--green);}
+.kc-red .kval{color:var(--red);}.kc-blue .kval{color:var(--blue);}.kc-purple .kval{color:var(--purple);}
+.ksub{color:var(--text3);font-size:11px;}
+/* PROGRESS BAR */
+.pbar-wrap{display:flex;align-items:center;gap:7px;}
+.pbar{flex:1;height:4px;background:var(--surf3);border-radius:2px;overflow:hidden;min-width:60px;}
+.pbar-fill{height:100%;border-radius:2px;}
+.ppct{font-size:10.5px;color:var(--text3);min-width:32px;text-align:right;}
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:13px 18px;font-size:12.5px;color:var(--text);z-index:9999;display:none;box-shadow:var(--sh);max-width:320px;}
+#toast.show{display:block;}
+#toast.ok{border-color:var(--green);}
+#toast.err{border-color:var(--red);}
+/* MODAL */
+.mbg{display:none;position:fixed;inset:0;background:rgba(30,36,50,.45);z-index:800;align-items:center;justify-content:center;}
+.mbg.open{display:flex !important;}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:26px;width:90%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto;}
+.modal.modal-wide{max-width:700px;}
+.mtitle{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.msub{font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.6;}
+.mfooter{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
+/* MERGE MODAL DIFF */
+.merge-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.merge-col-hdr{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.merge-field{padding:6px 0;font-size:12px;color:var(--text2);}
+.merge-new{color:var(--amber);}
+.merge-result{color:var(--green);font-weight:600;}
+/* MASTER DATA TAGS */
+.tag-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:30px;}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 8px 4px 11px;border-radius:20px;background:var(--surf3);border:1px solid var(--border);font-size:11px;color:var(--text2);}
+.tag-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.tag-del:hover{color:var(--red);background:var(--red-dim);}
+/* SPIN */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:sp .65s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* EMPTY */
+.empty{text-align:center;padding:44px 20px;color:var(--text3);}
+.empty-ico{font-size:36px;margin-bottom:10px;opacity:.35;}
+/* RESPONSIVE */
+@media(max-width:900px){.nav,.tabbar,.main{padding-left:14px;padding-right:14px;}.g5,.g6{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:repeat(2,1fr);}.kgrid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.g3,.g4,.g5,.g6{grid-template-columns:repeat(2,1fr);}.g2{grid-template-columns:1fr;}}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="logo">YarnTrack <em id="unitName">Twisting Unit</em></div>
+  <div class="nav-right">
+    <div class="gs-pill"><div class="gs-dot" id="gsDot"></div><span id="gsLbl">Not connected</span></div>
+    <button class="btn btn-sm" onclick="openModal('masterModal')" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);">🗂 Master Data</button>
+    <button class="btn btn-sm" onclick="openModal('cfgModal')" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);">⚙ Settings</button>
+    <button class="btn btn-sm" onclick="syncNow()" style="background:rgba(91,159,252,.25);color:#a8c8ff;border:1px solid rgba(91,159,252,.3);">↺ Sync</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabbar">
+  <button class="tb active" onclick="go('recv')">📥 Order Receive</button>
+  <button class="tb" onclick="go('disp')">📤 Dispatch</button>
+  <button class="tb" onclick="go('lots')">🗂 Lot Status</button>
+  <button class="tb" onclick="go('dash')">📊 Dashboard</button>
+  <button class="tb" onclick="go('prod')">⚙ Production</button>
+</div>
+
+<div class="main">
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 1 — ORDER RECEIVE                    -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-recv" class="panel active">
+  <div class="shdr"><div class="stitle">Order Receive <small>Log incoming yarn lots</small></div></div>
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;">
+      <span>+ New Receipt Entry</span>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('bulkRecvModal')" style="color:var(--blue);border-color:var(--blue-dim);">📤 Bulk Upload</button>
+    </div>
+
+    <!-- Duplicate lot info banner — auto-merge will happen on save -->
+    <div id="recvDupBanner" class="autofill-hint" style="background:rgba(91,155,213,.08);border-color:rgba(91,155,213,.3);color:var(--blue);">
+      ℹ <span id="recvDupText"></span>
+    </div>
+
+    <div class="grid g5" style="margin-bottom:12px;">
+      <div class="fg"><label>Date *</label><input type="date" id="r_date"></div>
+      <div class="fg"><label>Challan No. *</label><input type="text" id="r_challan" placeholder="e.g. 862"></div>
+      <div class="fg"><label>Company *</label>
+        <select id="r_co" onchange="onRCoChange()">
+          <option value="">— Select Company —</option>
+        </select>
+      </div>
+      <div class="fg"><label>Lot No. *</label><input type="text" id="r_lot" placeholder="e.g. I10138" list="dl_lot" oninput="onRLotInput()" onchange="onRLotInput()" onblur="onRLotInput()"></div>
+      <div class="fg"><label>Double Lot No.</label><input type="text" id="r_altlot" placeholder="e.g. 8911566"></div>
+    </div>
+    <div class="grid g6" style="margin-bottom:12px;">
+      <div class="fg"><label>Shade / Colour</label><input type="text" id="r_shade" list="dl_shade" placeholder="e.g. 3030069"></div>
+      <div class="fg"><label>Count *</label>
+        <select id="r_count">
+          <option value="">— Select Count —</option>
+        </select>
+      </div>
+      <div class="fg"><label>TPI</label><input type="text" id="r_tpi" list="dl_tpi" placeholder="e.g. 17"></div>
+      <div class="fg"><label>Blend *</label>
+        <select id="r_blend">
+          <option value="">— Select Blend —</option>
+        </select>
+      </div>
+      <div class="fg"><label>No. of Bags *</label><input type="number" id="r_bags" placeholder="64" min="0"></div>
+      <div class="fg"><label>Total Weight (kg) *</label><input type="number" id="r_weight" placeholder="4000.50" step="0.01" min="0"></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:12px;">
+      <div class="fg"><label>Single Cone Tip</label><input type="text" id="r_singleconetip" placeholder="e.g. White"></div>
+      <div class="fg"><label>Double Cone Tip</label><input type="text" id="r_doubleconetip" placeholder="e.g. Yellow"></div>
+      <div class="fg"><label>Shade Card No.</label><input type="text" id="r_shadecard" placeholder="e.g. SC-042"></div>
+      <div class="fg"><label>Paper Cone Received</label><input type="number" id="r_papercone" placeholder="e.g. 500" min="0" step="1"></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:16px;">
+      <div class="fg"><label>Job Work Rate (₹/kg)</label><input type="number" id="r_rate" placeholder="64.00" step="0.01" min="0"></div>
+      <div class="fg"><label>Allowed Shortage %</label><input type="number" id="r_shortage" placeholder="e.g. 0.5" step="0.01" min="0" max="100" title="Max % wastage allowed for this lot to be marked Complete"></div>
+      <div class="fg"><label>Vehicle No.</label><input type="text" id="r_vehicle" placeholder="Truck no."></div>
+      <div class="fg"><label>Status</label>
+        <select id="r_status"><option value="Received">Received</option><option value="In Process">In Process</option><option value="Hold">Hold</option></select>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-bottom:16px;">
+      <div class="fg"><label>Remarks</label><input type="text" id="r_remarks" placeholder="Optional"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-green" id="btnR" onclick="saveReceive()">✓ Save Receipt</button>
+      <button class="btn btn-ghost" onclick="clearForm('recv')" style="border-color:var(--red);color:var(--red);">🗑 Clear Form</button>
+      <span id="rSt" style="font-size:11px;color:var(--text3);"></span>
+    </div>
+  </div>
+
+  <div class="shdr">
+    <div class="stitle">Recent Receipts</div>
+    <div class="fbar" style="margin:0;">
+      <input type="text" placeholder="Search lot / company…" id="srchR" oninput="renderR()" style="width:190px;">
+      <select id="fRSt" onchange="renderR()" style="width:130px;"><option value="">All Status</option><option>Received</option><option>In Process</option><option>Hold</option></select>
+      <select id="fRCo" onchange="renderR()" style="width:130px;"><option value="">All Companies</option></select>
+      <button class="chip on" onclick="setChip('recv','all',this)">All</button>
+      <button class="chip" onclick="setChip('recv','today',this)">Today</button>
+      <button class="chip" onclick="setChip('recv','week',this)">Week</button>
+      <button class="chip" onclick="setChip('recv','month',this)">Month</button>
+      <button class="btn btn-ghost btn-sm" onclick="printTab('recv')" style="margin-left:6px;">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadExcel('recv')" style="margin-left:2px;color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
+    </div>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th><th>Double Lot</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th><th>Single Tip</th><th>Double Tip</th><th>Shade Card</th><th class="num">Paper Cone</th><th class="num">Bags</th><th class="num">Weight (kg)</th><th class="num">JW Rate ₹</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="tbR"></tbody>
+  </table></div>
+  <div id="emR" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No receipts yet.</p></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 2 — DISPATCH                         -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-disp" class="panel">
+  <div class="shdr"><div class="stitle">Dispatch <small>One challan — multiple lots. Select company first, then add lots.</small></div></div>
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;">
+      <span>+ New Dispatch Challan</span>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('bulkDispModal')" style="color:var(--blue);border-color:var(--blue-dim);">📤 Bulk Upload</button>
+    </div>
+
+    <!-- CHALLAN HEADER — date, challan, company, form, vehicle -->
+    <div class="grid g5" style="margin-bottom:14px;">
+      <div class="fg"><label>Date *</label><input type="date" id="d_date"></div>
+      <div class="fg"><label>Challan No. * <span id="challanStatus" style="font-size:10px;text-transform:none;letter-spacing:0;font-weight:400;"></span></label>
+        <input type="text" id="d_challan" placeholder="e.g. 1223" oninput="checkChallanUnique()" onblur="checkChallanUnique()"></div>
+      <div class="fg"><label>Company * <small style="color:var(--blue);font-size:9px;text-transform:none;">(filters lots below)</small></label>
+        <select id="d_co" onchange="onDCoChange()">
+          <option value="">— Select Company —</option>
+        </select>
+      </div>
+      <div class="fg"><label>Form</label>
+        <select id="d_form"><option value="D">D — Doubled / Twisted</option><option value="R">R — Return</option><option value="S">S — Sample</option><option value="Other">Other</option></select>
+      </div>
+      <div class="fg"><label>Vehicle No.</label><input type="text" id="d_vehicle" placeholder="Truck no."></div>
+    </div>
+    <div class="grid g3" style="margin-bottom:16px;">
+      <div class="fg"><label>Plant</label><input type="text" id="d_plant" placeholder="Plant 1 / 2 / 3"></div>
+      <div class="fg"><label>Job Work Rate (₹/kg) <small style="color:var(--text3);font-size:9px;text-transform:none;">(applied to all lots unless overridden)</small></label><input type="number" id="d_rate" placeholder="61.87" step="0.01"></div>
+      <div class="fg"><label>Remark</label><input type="text" id="d_remark" placeholder="Optional"></div>
+    </div>
+
+    <!-- LOT ROWS -->
+    <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+      Lots in this Challan
+      <button class="btn btn-ghost btn-sm" onclick="addLotRow()" id="btnAddRow">+ Add Lot</button>
+      <span id="dLotCount" style="font-size:11px;color:var(--text3);font-family:var(--mono);font-weight:400;"></span>
+    </div>
+
+    <!-- LOT ROWS TABLE -->
+    <div class="tw" style="margin-bottom:14px;">
+      <table id="lotRowsTable">
+        <thead><tr>
+          <th>#</th>
+          <th style="min-width:180px;">Lot No. *</th>
+          <th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
+          <th class="num" style="min-width:80px;">Bags *</th>
+          <th class="num" style="min-width:110px;">Weight (kg) *</th>
+          <th class="num" style="min-width:90px;">JW Rate ₹</th>
+          <th class="num" style="min-width:110px;color:var(--amber);">Pending Qty (kg)</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="lotRowsTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- TOTALS BAR -->
+    <div id="dispTotalsBar" style="display:none;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:10px 16px;margin-bottom:14px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;color:var(--text3);">CHALLAN TOTAL:</span>
+      <span style="font-size:13px;font-weight:600;color:var(--amber);">Lots: <span id="tot_lots">0</span></span>
+      <span style="font-size:13px;font-weight:600;color:var(--green);">Weight: <span id="tot_wt">0.00</span> kg</span>
+      <span style="font-size:13px;font-weight:600;color:var(--blue);">Bags: <span id="tot_bags">0</span></span>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-red" id="btnD" onclick="saveDispatch()">↗ Save Challan</button>
+      <button class="btn btn-ghost" onclick="clearForm('disp')" style="border-color:var(--red);color:var(--red);">🗑 Clear Form</button>
+      <span id="dSt" style="font-size:11px;color:var(--text3);"></span>
+    </div>
+  </div>
+
+  <div class="shdr">
+    <div class="stitle">Recent Dispatches</div>
+    <div class="fbar" style="margin:0;">
+      <input type="text" placeholder="Search lot / company…" id="srchD" oninput="renderD()" style="width:190px;">
+      <select id="fDCo" onchange="renderD()" style="width:130px;"><option value="">All Companies</option></select>
+      <select id="fDForm" onchange="renderD()" style="width:140px;"><option value="">All Forms</option><option value="D">D — Doubled</option><option value="R">R — Return</option><option value="S">S — Sample</option></select>
+      <button class="chip on" onclick="setChip('disp','all',this)">All</button>
+      <button class="chip" onclick="setChip('disp','today',this)">Today</button>
+      <button class="chip" onclick="setChip('disp','week',this)">Week</button>
+      <button class="chip" onclick="setChip('disp','month',this)">Month</button>
+      <button class="btn btn-ghost btn-sm" onclick="printTab('disp')" style="margin-left:6px;">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadExcel('disp')" style="margin-left:2px;color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
+    </div>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th><th class="num">Bags</th><th class="num">Weight (kg)</th><th class="num">JW Rate ₹</th><th>Form</th><th>Plant</th><th>Actions</th></tr></thead>
+    <tbody id="tbD"></tbody>
+  </table></div>
+  <div id="emD" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No dispatches yet.</p></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 3 — LOT STATUS                       -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-lots" class="panel">
+  <div class="shdr">
+    <div class="stitle">Lot Status <small>Full lot-wise tracking</small></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="buildLots()">↺ Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="printTab('lots')">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadExcel('lots')" style="color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
+    </div>
+  </div>
+  <div class="fbar">
+    <input type="text" placeholder="Search lot / company…" id="srchL" oninput="buildLots()" style="width:190px;">
+    <select id="fLCo" onchange="buildLots()" style="width:130px;"><option value="">All Companies</option></select>
+    <select id="fLSt" onchange="buildLots()" style="width:155px;"><option value="">All Status</option><option>Received</option><option>Returned</option><option>In Process</option><option>Partial Dispatch</option><option>Fully Dispatched</option><option>Completed</option><option>Hold</option></select>
+    <select id="fLCnt" onchange="buildLots()" style="width:120px;"><option value="">All Counts</option></select>
+    <select id="fLTpi" onchange="buildLots()" style="width:110px;"><option value="">All TPI</option></select>
+    <select id="fLShd" onchange="buildLots()" style="width:130px;"><option value="">All Shades</option></select>
+  </div>
+  <div class="tw"><table>
+    <thead><tr>
+      <th>Lot No.</th><th>Double Lot</th><th>Company</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th><th>Double Cone Tip</th>
+      <th>Recv Date</th><th class="num" style="color:var(--amber);">Ageing (days)</th>
+      <th class="num">Recv (kg)</th><th class="num">Return (kg)</th><th class="num">Net Recv (kg)</th><th class="num">Disp (kg)</th><th class="num">Balance (kg)</th>
+      <th class="num">Recv Bags</th><th class="num">Disp Bags</th><th class="num">Bal Bags</th>
+      <th class="num">Shortage%</th><th class="num">Allowed%</th><th class="num" style="color:var(--amber);">Pending Qty (kg)</th>
+      <th style="min-width:110px;">Progress</th><th>Status</th><th>Action</th>
+    </tr></thead>
+    <tbody id="tbL"></tbody>
+  </table></div>
+  <div id="emL" class="empty" style="display:none;"><div class="empty-ico">🗂</div><p>No lots match the filters.</p></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 4 — DASHBOARD                        -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-dash" class="panel">
+  <div class="shdr">
+    <div class="stitle">Dashboard <small>Live stock overview</small></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="fbar" style="margin:0;">
+        <button class="chip on" onclick="setChip('dash','all',this)">All Time</button>
+        <button class="chip" onclick="setChip('dash','yesterday',this)">Yesterday</button>
+        <button class="chip" onclick="setChip('dash','week',this)">This Week</button>
+        <button class="chip" onclick="setChip('dash','month',this)">This Month</button>
+        <input type="date" id="dash_from" onchange="buildDash()" title="From">
+        <input type="date" id="dash_to" onchange="buildDash()" title="To">
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="printTab('dash')">🖨 Print</button>
+    </div>
+  </div>
+  <div class="kgrid">
+    <div class="kcard kc-amber"><div class="klabel">Total Received (kg)</div><div class="kval" id="k_recv">—</div><div class="ksub" id="k_recv_s">—</div></div>
+    <div class="kcard kc-red"><div class="klabel">Total Dispatched (kg)</div><div class="kval" id="k_disp">—</div><div class="ksub" id="k_disp_s">—</div></div>
+    <div class="kcard kc-green"><div class="klabel">Current Stock (kg)</div><div class="kval" id="k_stk">—</div><div class="ksub" id="k_stk_s">—</div></div>
+    <div class="kcard kc-blue"><div class="klabel">Active Lots</div><div class="kval" id="k_lots">—</div><div class="ksub" id="k_lots_s">—</div></div>
+    <div class="kcard kc-purple"><div class="klabel">Pending (kg)</div><div class="kval" id="k_pend">—</div><div class="ksub" id="k_pend_s">—</div></div>
+  </div>
+  <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:10px;">Filter by Product</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="fg"><label>Count</label><select id="df_cnt" onchange="buildDash()" style="width:130px;"><option value="">All</option></select></div>
+      <div class="fg"><label>TPI</label><select id="df_tpi" onchange="buildDash()" style="width:110px;"><option value="">All</option></select></div>
+      <div class="fg"><label>Shade</label><select id="df_shd" onchange="buildDash()" style="width:130px;"><option value="">All</option></select></div>
+      <div class="fg"><label>Company</label><select id="df_co" onchange="buildDash()" style="width:140px;"><option value="">All</option></select></div>
+      <div class="fg"><label>Blend</label><select id="df_bld" onchange="buildDash()" style="width:110px;"><option value="">All</option></select></div>
+    </div>
+  </div>
+  <div class="stitle" style="margin-bottom:12px;font-size:15px;">Company-wise Summary</div>
+  <div class="tw" style="margin-bottom:22px;"><table>
+    <thead><tr><th>Company</th><th class="num">Recv (kg)</th><th class="num">Recv Bags</th><th class="num">Disp (kg)</th><th class="num">Disp Bags</th><th class="num">Balance (kg)</th><th class="num">Bal Bags</th><th class="num">Active Lots</th><th>Last Activity</th></tr></thead>
+    <tbody id="tbCo"></tbody>
+  </table></div>
+  <div class="grid g2">
+    <div>
+      <div class="stitle" style="margin-bottom:12px;font-size:15px;">Stock by Count</div>
+      <div class="tw"><table><thead><tr><th>Count</th><th class="num">Balance (kg)</th><th class="num">Bags</th><th class="num">Lots</th></tr></thead><tbody id="tbByCnt"></tbody></table></div>
+    </div>
+    <div>
+      <div class="stitle" style="margin-bottom:12px;font-size:15px;">Stock by Shade</div>
+      <div class="tw"><table><thead><tr><th>Shade</th><th class="num">Balance (kg)</th><th class="num">Bags</th><th class="num">Lots</th></tr></thead><tbody id="tbByShd"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 5 — PRODUCTION CALCULATOR            -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-prod" class="panel">
+  <div class="shdr">
+    <div class="stitle">Calculators <small>Production & Winding</small></div>
+    <button class="btn btn-ghost btn-sm" onclick="printTab('prod')">🖨 Print</button>
+  </div>
+
+  <!-- ── SECTION 1: TFO PRODUCTION ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);">⚙ TFO Production Calculation</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">Machine output per drum &amp; per machine for 12 / 24 hours</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="addProdRow()">+ Add Machine</button>
+  </div>
+
+  <!-- FORMULA INFO CARD -->
+  <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+    <div style="font-size:10px;font-weight:700;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px;">Formula Reference</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">A — Per Drum / 12 hrs (kg)</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;">
+          <span style="color:var(--amber);">A</span> = (((RPM × 2.077) ÷ (TPI × (Count ÷ 2))) ÷ 8 ÷ 144) × 12
+        </div>
+      </div>
+      <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">B — Per Machine / 12 hrs (kg)</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;">
+          <span style="color:var(--green);">B</span> = A × 156 drums
+        </div>
+      </div>
+      <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">C — Per Machine / 24 hrs (kg)</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;">
+          <span style="color:var(--blue);">C</span> = B × 2
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUT TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;">
+    <div class="tw">
+      <table id="prodTable">
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th style="min-width:140px;">Machine / Label</th>
+            <th class="num" style="min-width:110px;">RPM</th>
+            <th class="num" style="min-width:110px;">Count</th>
+            <th class="num" style="min-width:110px;">TPI</th>
+            <th class="num" style="min-width:160px;background:rgba(232,160,66,.08);color:var(--amber);">A — Per Drum 12hr (kg)</th>
+            <th class="num" style="min-width:180px;background:rgba(92,184,122,.08);color:var(--green);">B — Per Machine 12hr (kg)</th>
+            <th class="num" style="min-width:180px;background:rgba(91,155,213,.08);color:var(--blue);">C — Per Machine 24hr (kg)</th>
+            <th style="width:50px;"></th>
+          </tr>
+        </thead>
+        <tbody id="prodTbody"></tbody>
+        <tfoot>
+          <tr id="prodTotalsRow" style="display:none;">
+            <td colspan="5" style="padding:10px 13px;font-weight:700;font-size:12px;color:var(--text2);text-align:right;border-top:2px solid var(--border);">TOTAL (all machines)</td>
+            <td class="num" id="prodTotA" style="padding:10px 13px;font-weight:700;color:var(--amber);border-top:2px solid var(--border);background:rgba(232,160,66,.06);"></td>
+            <td class="num" id="prodTotB" style="padding:10px 13px;font-weight:700;color:var(--green);border-top:2px solid var(--border);background:rgba(92,184,122,.06);"></td>
+            <td class="num" id="prodTotC" style="padding:10px 13px;font-weight:700;color:var(--blue);border-top:2px solid var(--border);background:rgba(91,155,213,.06);"></td>
+            <td style="border-top:2px solid var(--border);"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="emProd" class="empty">
+    <div class="empty-ico">⚙</div>
+    <p>No machines added yet. Click <strong>"+ Add Machine"</strong> to start.</p>
+  </div>
+
+  <!-- SAVED CONFIGS -->
+  <div id="prodSavedWrap" style="margin-top:16px;display:none;">
+    <div class="shdr">
+      <div class="stitle" style="font-size:14px;">Saved Configurations</div>
+      <button class="btn btn-ghost btn-sm" onclick="saveProdConfig()">💾 Save Current</button>
+    </div>
+    <div id="prodSavedList" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div style="height:1px;background:var(--border);margin:28px 0;"></div>
+
+  <!-- ── SECTION 2: CHEESE WINDING LENGTH CALCULATOR ── -->
+  <div style="margin-bottom:16px;">
+    <div style="font-size:16px;font-weight:700;color:var(--text);">🧀 Cheese Winding Length Calculator</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:2px;">Calculate yarn length from weight and count</div>
+  </div>
+
+  <!-- FORMULA CARD -->
+  <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+    <div style="font-size:10px;font-weight:700;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px;">Formula Reference</div>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:14px;display:inline-block;min-width:320px;">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">A — Length (metres)</div>
+      <div style="font-size:13px;color:var(--text);line-height:2;">
+        <span style="color:var(--purple);">A</span> = C × 1.697 × (B ÷ 2)
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.7;">
+        B = Count &nbsp;·&nbsp; C = Weight without cheese (<strong>grams</strong>)
+      </div>
+    </div>
+  </div>
+
+  <!-- CHEESE WINDING INPUT + RESULT -->
+  <div class="card" style="padding:20px;">
+    <div class="grid g3" style="margin-bottom:18px;">
+      <div class="fg">
+        <label>B — Count</label>
+        <input type="number" id="cw_count" placeholder="e.g. 30" min="0" step="0.1" oninput="calcCheese()">
+        <span style="font-size:10px;color:var(--text3);margin-top:4px;">Enter the yarn count</span>
+      </div>
+      <div class="fg">
+        <label>C — Weight without Cheese (grams)</label>
+        <input type="number" id="cw_weight" placeholder="e.g. 1250" min="0" step="1" oninput="calcCheese()">
+        <span style="font-size:10px;color:var(--text3);margin-top:4px;">Net yarn weight only in grams (no bobbin/cheese weight)</span>
+      </div>
+      <div class="fg">
+        <label>A — Length (metres)</label>
+        <div id="cw_result" style="
+          background:var(--surf2);
+          border:2px solid var(--purple);
+          border-radius:6px;
+          padding:10px 14px;
+          font-size:22px;
+          font-weight:700;
+          color:var(--purple);
+          min-height:44px;
+          display:flex;
+          align-items:center;
+        ">—</div>
+      </div>
+    </div>
+
+    <!-- Multi-entry table -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+      Batch Calculator — multiple entries
+      <button class="btn btn-ghost btn-sm" onclick="addCheeseRow()">+ Add Row</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="min-width:140px;">Label / Lot</th>
+            <th class="num" style="min-width:110px;">B — Count</th>
+            <th class="num" style="min-width:160px;">C — Weight (grams)</th>
+            <th class="num" style="min-width:180px;background:rgba(164,127,208,.08);color:var(--purple);">A — Length (m)</th>
+            <th style="width:50px;"></th>
+          </tr>
+        </thead>
+        <tbody id="cheeseTbody"></tbody>
+      </table>
+    </div>
+    <div id="emCheese" style="text-align:center;padding:24px;color:var(--text3);font-size:12px;display:none;">
+      No rows yet. Click <strong>+ Add Row</strong> for batch calculation.
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /main -->
+
+<!-- ════════════════════════════════════════ -->
+<!-- MASTER DATA MODAL                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="masterModal">
+  <div class="modal modal-wide">
+    <div class="mtitle">🗂 Master Data</div>
+    <div class="msub">Manage your predefined companies, counts, and blend types. These appear as dropdowns across all forms.</div>
+    <div class="grid g3" style="gap:20px;">
+      <!-- Companies -->
+      <div>
+        <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px;">Companies</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="newCo" placeholder="Add company…" onkeydown="if(event.key==='Enter')addMaster('co')" style="flex:1;">
+          <button class="btn btn-amber btn-sm" onclick="addMaster('co')">+</button>
+        </div>
+        <div class="tag-wrap" id="tagsCo"></div>
+      </div>
+      <!-- Counts -->
+      <div>
+        <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px;">Counts</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="newCnt" placeholder="e.g. 1/30 PV" onkeydown="if(event.key==='Enter')addMaster('cnt')" style="flex:1;">
+          <button class="btn btn-amber btn-sm" onclick="addMaster('cnt')">+</button>
+        </div>
+        <div class="tag-wrap" id="tagsCnt"></div>
+      </div>
+      <!-- Blends -->
+      <div>
+        <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px;">Blends</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="newBld" placeholder="e.g. PV / C / PC" onkeydown="if(event.key==='Enter')addMaster('bld')" style="flex:1;">
+          <button class="btn btn-amber btn-sm" onclick="addMaster('bld')">+</button>
+        </div>
+        <div class="tag-wrap" id="tagsBld"></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('masterModal')">Close</button>
+      <button class="btn btn-amber" onclick="saveMaster()">Save Master Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- MERGE / DUPLICATE LOT MODAL              -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="mergeModal">
+  <div class="modal modal-wide">
+    <div class="mtitle">⚠ Duplicate Lot Detected</div>
+    <div class="msub" id="mergeMsub"></div>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;">
+      <div class="merge-row">
+        <div><div class="merge-col-hdr">Field</div></div>
+        <div><div class="merge-col-hdr">Existing</div></div>
+        <div><div class="merge-col-hdr" style="color:var(--amber);">New Entry</div></div>
+      </div>
+      <div id="mergeDiffRows"></div>
+      <div style="height:1px;background:var(--border);margin:10px 0;"></div>
+      <div class="merge-row" style="margin-bottom:0;">
+        <div><div class="merge-field" style="font-weight:600;color:var(--text);">Bags (total after merge)</div></div>
+        <div><div class="merge-field" id="mergeExBags">—</div></div>
+        <div><div class="merge-field merge-result" id="mergeNewBags">—</div></div>
+      </div>
+      <div class="merge-row" style="margin-bottom:0;">
+        <div><div class="merge-field" style="font-weight:600;color:var(--text);">Weight kg (total after merge)</div></div>
+        <div><div class="merge-field" id="mergeExWt">—</div></div>
+        <div><div class="merge-field merge-result" id="mergeNewWt">—</div></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('mergeModal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="proceedAsNew()">Save as New Entry</button>
+      <button class="btn btn-amber" onclick="proceedMerge()">✓ Merge & Update Existing</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- SETTINGS MODAL                           -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="cfgModal">
+  <div class="modal">
+    <div class="mtitle">⚙ Settings</div>
+
+    <!-- GOOGLE SIGN IN SECTION -->
+    <div id="gSignInSection">
+      <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:16px;">
+        <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--amber);margin-bottom:8px;">Google Account</div>
+        <div id="gAccountInfo" style="font-size:12px;color:var(--text2);margin-bottom:12px;">Not signed in</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-amber" id="btnGSignIn" onclick="googleSignIn()">🔑 Sign in with Google</button>
+          <button class="btn btn-ghost btn-sm" id="btnGSignOut" onclick="googleSignOut()" style="display:none;">Sign Out</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.6;">
+          Sign in once → stays connected forever. No token needed every time.<br>
+          Your team signs in with their own Google account on their browser.
+        </div>
+      </div>
+    </div>
+
+    <!-- SHEET ID + NAME -->
+    <div class="grid" style="gap:11px;margin-bottom:14px;">
+      <div class="fg">
+        <label>Spreadsheet ID <small style="text-transform:none;letter-spacing:0;color:var(--text3)">(from the Google Sheet URL)</small></label>
+        <input type="text" id="cfg_sid" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+      </div>
+      <div class="fg"><label>Unit / Company Name</label><input type="text" id="cfg_name" placeholder="e.g. Shree Yarn Twisting Pvt Ltd"></div>
+    </div>
+
+    <!-- HOW TO GET SHEET ID -->
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:11px;color:var(--text3);line-height:1.7;">
+      <strong style="color:var(--text2);">How to set up Google Sheet:</strong><br>
+      1. Go to <a href="https://sheets.google.com" target="_blank" style="color:var(--blue);">sheets.google.com</a> → Create new sheet<br>
+      2. Copy the ID from the URL: docs.google.com/spreadsheets/d/<strong style="color:var(--amber);">THIS-PART</strong>/edit<br>
+      3. Share the sheet → <em>"Anyone with link can edit"</em><br>
+      4. Paste the ID above and click Save
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <button class="btn btn-ghost btn-sm" onclick="testConn()">🔌 Test Connection</button>
+      <span id="connRes" style="font-size:11px;color:var(--text3);"></span>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('cfgModal')">Cancel</button>
+      <button class="btn btn-amber" onclick="saveConfig()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- EDIT MODAL — RECEIVE                     -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="editRecvModal">
+  <div class="modal modal-wide">
+    <div class="mtitle">✎ Edit Receipt Entry</div>
+    <input type="hidden" id="er_id">
+    <div class="grid g5" style="margin-bottom:12px;">
+      <div class="fg"><label>Date</label><input type="date" id="er_date"></div>
+      <div class="fg"><label>Challan No.</label><input type="text" id="er_challan"></div>
+      <div class="fg"><label>Company</label><select id="er_co"></select></div>
+      <div class="fg"><label>Lot No.</label><input type="text" id="er_lot"></div>
+      <div class="fg"><label>Alt. Lot No.</label><input type="text" id="er_altlot"></div>
+    </div>
+    <div class="grid g6" style="margin-bottom:12px;">
+      <div class="fg"><label>Shade</label><input type="text" id="er_shade"></div>
+      <div class="fg"><label>Count</label><select id="er_count"></select></div>
+      <div class="fg"><label>TPI</label><input type="text" id="er_tpi"></div>
+      <div class="fg"><label>Blend</label><select id="er_blend"></select></div>
+      <div class="fg"><label>Bags</label><input type="number" id="er_bags" min="0" step="1"></div>
+      <div class="fg"><label>Weight (kg)</label><input type="number" id="er_weight" min="0" step="0.01"></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="fg"><label>Job Work Rate (₹/kg)</label><input type="number" id="er_rate" min="0" step="0.01"></div>
+      <div class="fg"><label>Allowed Shortage %</label><input type="number" id="er_shortage" min="0" max="100" step="0.01"></div>
+      <div class="fg"><label>Vehicle No.</label><input type="text" id="er_vehicle"></div>
+      <div class="fg"><label>Status</label>
+        <select id="er_status"><option value="Received">Received</option><option value="In Process">In Process</option><option value="Hold">Hold</option></select>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:14px;"><label>Remarks</label><input type="text" id="er_remarks"></div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('editRecvModal')">Cancel</button>
+      <button class="btn btn-amber" onclick="saveEdit('recv')">✓ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- EDIT MODAL — DISPATCH                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="editDispModal">
+  <div class="modal modal-wide">
+    <div class="mtitle">✎ Edit Dispatch Entry</div>
+    <input type="hidden" id="ed_id">
+    <div class="grid g5" style="margin-bottom:12px;">
+      <div class="fg"><label>Date</label><input type="date" id="ed_date"></div>
+      <div class="fg"><label>Challan No.</label><input type="text" id="ed_challan"></div>
+      <div class="fg"><label>Company</label><select id="ed_co"></select></div>
+      <div class="fg"><label>Lot No.</label><input type="text" id="ed_lot"></div>
+      <div class="fg"><label>Form</label>
+        <select id="ed_form"><option value="D">D — Doubled</option><option value="R">R — Return</option><option value="S">S — Sample</option><option value="Other">Other</option></select>
+      </div>
+    </div>
+    <div class="grid g6" style="margin-bottom:12px;">
+      <div class="fg"><label>Shade</label><input type="text" id="ed_shade"></div>
+      <div class="fg"><label>Count</label><select id="ed_count"></select></div>
+      <div class="fg"><label>TPI</label><input type="text" id="ed_tpi"></div>
+      <div class="fg"><label>Blend</label><select id="ed_blend"></select></div>
+      <div class="fg"><label>Bags</label><input type="number" id="ed_bags" min="0" step="1"></div>
+      <div class="fg"><label>Weight (kg)</label><input type="number" id="ed_weight" min="0" step="0.01"></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="fg"><label>Job Work Rate (₹/kg)</label><input type="number" id="ed_rate" step="0.01"></div>
+      <div class="fg"><label>Plant</label><input type="text" id="ed_plant"></div>
+      <div class="fg"><label>Vehicle No.</label><input type="text" id="ed_vehicle"></div>
+      <div class="fg"><label>Remark</label><input type="text" id="ed_remark"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('editDispModal')">Cancel</button>
+      <button class="btn btn-amber" onclick="saveEdit('disp')">✓ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- FIRST RUN — SIGN IN WIZARD              -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="firstRunModal" style="z-index:900;">
+  <div class="modal" style="max-width:420px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">🧵</div>
+    <div class="mtitle" style="text-align:center;font-size:20px;" id="frUnitName">YarnTrack</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.7;">
+      Sign in with your Google account to access the centralized stock data. Your data is shared across all team members in real time.
+    </div>
+    <button class="btn btn-amber" style="width:100%;justify-content:center;padding:12px;font-size:14px;" onclick="googleSignIn()">
+      🔑 Sign in with Google
+    </button>
+    <div style="font-size:10px;color:var(--text3);margin-top:14px;line-height:1.6;">
+      First time? Sign in once — your browser remembers you permanently.<br>
+      All data is saved to the shared Google Sheet.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- BULK UPLOAD — RECEIVE                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="bulkRecvModal">
+  <div class="modal modal-wide">
+    <div class="mtitle">📤 Bulk Upload — Order Receive</div>
+    <div class="msub">Upload a CSV file with multiple receipt entries. Download the template first to see the exact column format.</div>
+
+    <!-- Step 1: Download template -->
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">Step 1 — Download Template</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6;">
+        Fill the CSV in Excel / Google Sheets. Required columns: <strong style="color:var(--text)">Date, Challan No, Company, Lot No, Count, Blend, No of Bags, Weight (kg)</strong>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="downloadTemplate('recv')">⬇ Download Receive Template (.csv)</button>
+    </div>
+
+    <!-- Step 2: Upload file -->
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">Step 2 — Upload Filled CSV</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="file" id="bulkRecvFile" accept=".csv" onchange="parseBulkFile('recv')" style="width:auto;cursor:pointer;">
+        <span id="bulkRecvFileInfo" style="font-size:11px;color:var(--text3);"></span>
+      </div>
+    </div>
+
+    <!-- Preview table -->
+    <div id="bulkRecvPreviewWrap" style="display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">Step 3 — Review & Confirm</div>
+      <div id="bulkRecvSummary" style="font-size:12px;color:var(--text2);margin-bottom:10px;"></div>
+      <div id="bulkRecvErrors" style="margin-bottom:10px;"></div>
+      <div class="tw" style="max-height:280px;overflow-y:auto;">
+        <table><thead><tr id="bulkRecvThead"></tr></thead><tbody id="bulkRecvTbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('bulkRecvModal');resetBulk('recv')">Cancel</button>
+      <button class="btn btn-green" id="btnBulkRecvSave" style="display:none;" onclick="saveBulk('recv')">✓ Save All Entries</button>
+    </div>
+    <div id="bulkRecvProgress" style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- BULK UPLOAD — DISPATCH                   -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="bulkDispModal">
+  <div class="modal modal-wide">
+    <div class="mtitle">📤 Bulk Upload — Dispatch</div>
+    <div class="msub">Upload a CSV file with multiple dispatch entries. Download the template first to see the exact column format.</div>
+
+    <!-- Step 1: Download template -->
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">Step 1 — Download Template</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6;">
+        Required columns: <strong style="color:var(--text)">Date, Challan No, Company, Lot No, No of Bags, Weight (kg), Form (D/R/S)</strong>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="downloadTemplate('disp')">⬇ Download Dispatch Template (.csv)</button>
+    </div>
+
+    <!-- Step 2: Upload file -->
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">Step 2 — Upload Filled CSV</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="file" id="bulkDispFile" accept=".csv" onchange="parseBulkFile('disp')" style="width:auto;cursor:pointer;">
+        <span id="bulkDispFileInfo" style="font-size:11px;color:var(--text3);"></span>
+      </div>
+    </div>
+
+    <!-- Preview table -->
+    <div id="bulkDispPreviewWrap" style="display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;">Step 3 — Review & Confirm</div>
+      <div id="bulkDispSummary" style="font-size:12px;color:var(--text2);margin-bottom:10px;"></div>
+      <div id="bulkDispErrors" style="margin-bottom:10px;"></div>
+      <div class="tw" style="max-height:280px;overflow-y:auto;">
+        <table><thead><tr id="bulkDispThead"></tr></thead><tbody id="bulkDispTbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('bulkDispModal');resetBulk('disp')">Cancel</button>
+      <button class="btn btn-red" id="btnBulkDispSave" style="display:none;" onclick="saveBulk('disp')">✓ Save All Entries</button>
+    </div>
+    <div id="bulkDispProgress" style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;display:none;"></div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="mbg" id="delModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="mtitle">🗑 Delete Entry</div>
+    <div class="msub">This will permanently remove this entry from local storage. If it was saved to Google Sheets, it will remain there until manually deleted.</div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="cancelDel()">Cancel</button>
+      <button class="btn btn-red" onclick="confirmDel()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="dl_shade"></datalist>
+<datalist id="dl_shade2"></datalist>
+<datalist id="dl_tpi"></datalist>
+<datalist id="dl_lot"></datalist>
+
+<!-- ════════════════════════════════════════ -->
+<!-- PRINT PREVIEW MODAL                      -->
+<!-- ════════════════════════════════════════ -->
+<div class="mbg" id="printModal">
+  <div class="modal" style="max-width:960px;width:95%;max-height:88vh;display:flex;flex-direction:column;padding:0;">
+    <!-- Modal header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div>
+        <div style="font-family:var(--head);font-size:16px;font-weight:700;" id="printModalTitle">Print Report</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;" id="printModalSub"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-amber" onclick="doPrint()">🖨 Print / Save PDF</button>
+        <button class="btn btn-ghost" onclick="closeModal('printModal')">✕ Close</button>
+      </div>
+    </div>
+    <!-- Preview area -->
+    <div style="overflow-y:auto;padding:22px;flex:1;" id="printPreviewWrap">
+      <div id="printContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT STYLES -->
+<style id="printStyles">
+@media print {
+  body > *:not(#printFrame) { display:none !important; }
+  #printFrame { display:block !important; }
+}
+.print-doc {
+  font-family: -apple-system,'Segoe UI','Arial',sans-serif;
+  font-size: 11px;
+  color: #1a1a1a;
+  background: #fff;
+  padding: 24px 28px;
+  max-width: 100%;
+}
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.print-company {
+  font-family: -apple-system,'Segoe UI','Arial Black',sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+}
+.print-report-type {
+  font-size: 11px;
+  color: #555;
+  margin-top: 3px;
+}
+.print-meta {
+  text-align: right;
+  font-size: 10px;
+  color: #555;
+  line-height: 1.7;
+}
+.print-filters {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: #444;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.print-filters span { display:flex; align-items:center; gap:4px; }
+.print-filters strong { color:#1a1a1a; }
+.print-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.print-kpi {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.print-kpi-label { font-size: 9px; color:#666; text-transform:uppercase; letter-spacing:.8px; margin-bottom:4px; }
+.print-kpi-val { font-size: 18px; font-weight: 800; color:#1a1a1a; }
+.print-kpi-sub { font-size: 9px; color:#888; }
+.print-section-title {
+  font-family: -apple-system,'Segoe UI','Arial',sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  margin: 16px 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.print-table th {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+.print-table th.r { text-align:right; }
+.print-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.print-table td.r { text-align:right; font-variant-numeric:tabular-nums; }
+.print-table tbody tr:nth-child(even) td { background:#fafafa; }
+.print-table tbody tr:last-child td { border-bottom: 1px solid #ccc; }
+.print-count-row { background:#f0f0f0 !important; font-weight:600; }
+.print-footer {
+  margin-top:18px;
+  padding-top:10px;
+  border-top:1px solid #ddd;
+  font-size:9px;
+  color:#888;
+  display:flex;
+  justify-content:space-between;
+}
+.tag-recv { background:#e8f4fd; color:#1a6c9e; padding:1px 6px; border-radius:10px; font-size:9px; }
+.tag-disp { background:#e8fdf0; color:#1a7a4a; padding:1px 6px; border-radius:10px; font-size:9px; }
+.tag-hold { background:#fdf3e8; color:#9e4e1a; padding:1px 6px; border-radius:10px; font-size:9px; }
+.tag-done { background:#e8fde8; color:#1a7a1a; padding:1px 6px; border-radius:10px; font-size:9px; }
+</style>
+
+<!-- Hidden iframe for actual printing -->
+<iframe id="printFrame" style="display:none;"></iframe>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let recv = [], disp = [];
+let cfg = { key:'', sid:'', name:'' };
+let dateF = { recv:'all', disp:'all', dash:'all' };
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  CENTRALIZED CONFIG — SET THESE ONCE, DEPLOY ONCE   ║
+// ║  Every team member gets the same sheet automatically ║
+// ╚══════════════════════════════════════════════════════╝
+const APP_CONFIG = {
+  // 1. Your Google Sheets Spreadsheet ID (from the URL)
+  //    docs.google.com/spreadsheets/d/THIS_PART_HERE/edit
+  SHEET_ID: '1J0tw69AizepTCALRwOF1TrGftdvL9itxCxXTq_0StvU',
+
+  // 2. Your OAuth 2.0 Client ID from Google Cloud Console
+  //    console.cloud.google.com → APIs & Services → Credentials
+  OAUTH_CLIENT_ID: '482576637407-a8denif5v5nhqeb7unbal4l2lkcf6m99.apps.googleusercontent.com',
+
+  // 3. Your unit / company name shown in the app header
+  UNIT_NAME: 'ATF Yarn Twisting Unit',
+};
+// ════════════════════════════════════════════════════════
+
+// Master data — predefined dropdown values
+let master = {
+  companies: ['BSL','SANGAM','RSWM','RSWM-G','SUPER GOLD'],
+  counts:    ['1/18 PV','1/20 PV','1/30 PV','1/30 C','1/40 PV','2/18 PV','2/20 PV','2/30 PV','2/40 PV'],
+  blends:    ['PV','C','PC','Cotton','Polyester']
+};
+
+// Merge context — holds pending entry during merge decision
+let mergeCtx = { tab: null, entry: null };
+
+// Manually completed lots — persisted separately
+let completedLots = new Set();
+
+const R_HDR = ['ID','Date','Challan','Company','LotNo','AltLot','Shade','Count','TPI','Blend','Bags','Weight','Rate','Vehicle','Status','Remarks','Timestamp'];
+const D_HDR = ['ID','Date','Challan','Company','LotNo','Shade','Count','TPI','Blend','Bags','Weight','Rate','Form','Plant','Vehicle','Remark','Timestamp'];
+
+// ═══════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  const td = today();
+  ['r_date','d_date'].forEach(id => { const el=g(id); if(el) el.value=td; });
+
+  // Apply baked-in config
+  cfg.sid  = APP_CONFIG.SHEET_ID;
+  cfg.oauthClientId = APP_CONFIG.OAUTH_CLIENT_ID;
+  cfg.name = APP_CONFIG.UNIT_NAME;
+  g('unitName').textContent = cfg.name;
+  const frName = g('frUnitName');
+  if (frName) frName.textContent = cfg.name;
+
+  // Load any persisted overrides + local data
+  loadCfg(); loadLocal(); loadMaster();
+  populateAll(); renderAll();
+
+  // Init Google Auth — retry until GIS script is loaded (async defer)
+  function tryInitGoogleAuth() {
+    if (window.google && window.google.accounts) {
+      initGoogleAuth();
+      if (_accessToken && cfg.sid && cfg.sid !== 'YOUR_SPREADSHEET_ID_HERE') {
+        syncSheets();
+      } else if (!_accessToken) {
+        g('firstRunModal').classList.add('open');
+      }
+    } else {
+      setTimeout(tryInitGoogleAuth, 200);
+    }
+  }
+  tryInitGoogleAuth();
+});
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtKg(n) { return isNaN(parseFloat(n)) ? '0.00' : parseFloat(n).toFixed(2); }
+function renderAll() { populateAll(); renderR(); renderD(); buildLots(); buildDash(); }
+
+// ═══════════════════════════════════════════════
+// MASTER DATA
+// ═══════════════════════════════════════════════
+function loadMaster() {
+  const m = localStorage.getItem('yt2_master');
+  if (m) master = { ...master, ...JSON.parse(m) };
+}
+function saveMaster() {
+  localStorage.setItem('yt2_master', JSON.stringify(master));
+  populateAll(); renderTagsAll();
+  closeModal('masterModal');
+  toast('Master data saved!', 'ok');
+}
+function addMaster(type) {
+  const map = { co:'newCo', cnt:'newCnt', bld:'newBld' };
+  const arrMap = { co:'companies', cnt:'counts', bld:'blends' };
+  const val = g(map[type]).value.trim();
+  if (!val) return;
+  if (!master[arrMap[type]].includes(val)) {
+    master[arrMap[type]].push(val);
+    master[arrMap[type]].sort();
+  }
+  g(map[type]).value = '';
+  renderTagsAll();
+}
+function removeMaster(type, val) {
+  const arrMap = { co:'companies', cnt:'counts', bld:'blends' };
+  master[arrMap[type]] = master[arrMap[type]].filter(v => v !== val);
+  renderTagsAll();
+}
+function renderTagsAll() {
+  g('tagsCo').innerHTML  = master.companies.map(v => `<div class="tag"><span>${v}</span><button class="tag-del" onclick="removeMaster('co','${v.replace(/'/g,'\\\'')}')" title="Remove">×</button></div>`).join('') || '<span style="color:var(--text3);font-size:11px;">No companies added</span>';
+  g('tagsCnt').innerHTML = master.counts.map(v => `<div class="tag"><span>${v}</span><button class="tag-del" onclick="removeMaster('cnt','${v.replace(/'/g,'\\\'')}')" title="Remove">×</button></div>`).join('') || '<span style="color:var(--text3);font-size:11px;">No counts added</span>';
+  g('tagsBld').innerHTML = master.blends.map(v => `<div class="tag"><span>${v}</span><button class="tag-del" onclick="removeMaster('bld','${v.replace(/'/g,'\\\'')}')" title="Remove">×</button></div>`).join('') || '<span style="color:var(--text3);font-size:11px;">No blends added</span>';
+}
+// Open master modal — render tags on open
+// (handled inside openModal function below)
+
+// ═══════════════════════════════════════════════
+// CONFIG & OAUTH
+// ═══════════════════════════════════════════════
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+let _tokenClient = null;
+let _accessToken  = null;
+let _tokenExpiry  = 0;
+
+function loadCfg() {
+  // Always use baked-in APP_CONFIG as base
+  cfg.sid  = APP_CONFIG.SHEET_ID;
+  cfg.oauthClientId = APP_CONFIG.OAUTH_CLIENT_ID;
+  cfg.name = APP_CONFIG.UNIT_NAME;
+
+  // Allow admin overrides from localStorage (for Settings modal)
+  const s = localStorage.getItem('yt2_cfg');
+  if (s) {
+    const saved = JSON.parse(s);
+    // Only override if non-empty (admin intentionally changed it)
+    if (saved.sid)  cfg.sid  = saved.sid;
+    if (saved.name) cfg.name = saved.name;
+    if (saved.oauthClientId) cfg.oauthClientId = saved.oauthClientId;
+  }
+
+  // Update UI fields
+  const sidEl = g('cfg_sid'); if(sidEl) sidEl.value = cfg.sid||'';
+  const nameEl = g('cfg_name'); if(nameEl) nameEl.value = cfg.name||'';
+  g('unitName').textContent = cfg.name;
+
+  // Restore saved token
+  const tk = localStorage.getItem('yt2_gtoken');
+  if (tk) {
+    const parsed = JSON.parse(tk);
+    if (parsed.expiry > Date.now()) {
+      _accessToken = parsed.token;
+      _tokenExpiry = parsed.expiry;
+      updateSignInUI(parsed.email||'');
+      setGS('on', 'Connected');
+    } else {
+      localStorage.removeItem('yt2_gtoken');
+    }
+  }
+}
+
+function saveConfig() {
+  cfg.sid  = g('cfg_sid').value.trim() || APP_CONFIG.SHEET_ID;
+  cfg.name = g('cfg_name').value.trim() || APP_CONFIG.UNIT_NAME;
+  localStorage.setItem('yt2_cfg', JSON.stringify({ sid: cfg.sid, name: cfg.name, oauthClientId: cfg.oauthClientId }));
+  g('unitName').textContent = cfg.name;
+  closeModal('cfgModal');
+  toast('Config saved!', 'ok');
+  if (_accessToken && cfg.sid) ensureTabs().then(() => syncSheets());
+}
+
+// ── GOOGLE SIGN IN ──
+function initGoogleAuth() {
+  if (!window.google || !cfg.oauthClientId || cfg.oauthClientId === 'YOUR_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com') return;
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: cfg.oauthClientId,
+    scope: SCOPES,
+    callback: (tokenResp) => {
+      if (tokenResp.error) { toast('Google sign-in failed: '+tokenResp.error, 'err'); return; }
+      _accessToken = tokenResp.access_token;
+      _tokenExpiry = Date.now() + (tokenResp.expires_in * 1000);
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + _accessToken }
+      }).then(r=>r.json()).then(info => {
+        const email = info.email || '';
+        localStorage.setItem('yt2_gtoken', JSON.stringify({
+          token: _accessToken, expiry: _tokenExpiry, email
+        }));
+        updateSignInUI(email);
+        setGS('on', 'Connected');
+        toast('✓ Signed in as ' + email, 'ok');
+        // Close first-run wizard
+        g('firstRunModal').classList.remove('open');
+        // Ensure sheet tabs exist with proper headers, then sync
+        if (cfg.sid && cfg.sid !== 'YOUR_SPREADSHEET_ID_HERE') {
+          ensureTabs().then(() => syncSheets());
+        }
+      });
+    }
+  });
+}
+
+function googleSignIn() {
+  // If OAuth Client ID not yet set (placeholder), prompt admin
+  if (!cfg.oauthClientId || cfg.oauthClientId === 'YOUR_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com') {
+    const id = prompt(
+      'OAuth Client ID not configured in the app.\n\n' +
+      'Ask your admin to set APP_CONFIG.OAUTH_CLIENT_ID in the HTML file.\n\n' +
+      'Or enter it here temporarily:'
+    );
+    if (!id || !id.includes('.apps.googleusercontent.com')) {
+      toast('Invalid Client ID', 'err'); return;
+    }
+    cfg.oauthClientId = id.trim();
+  }
+  // Wait for GIS to load if not yet ready
+  if (!window.google || !window.google.accounts) {
+    toast('Google Sign-In loading, please wait…', '');
+    setTimeout(googleSignIn, 500);
+    return;
+  }
+  if (!_tokenClient) initGoogleAuth();
+  if (_tokenClient) {
+    _tokenClient.requestAccessToken({ prompt: 'consent' });
+  } else {
+    toast('Sign-In not ready. Please refresh the page.', 'err');
+  }
+}
+
+function googleSignOut() {
+  if (_accessToken) {
+    google.accounts.oauth2.revoke(_accessToken, () => {});
+    _accessToken = null; _tokenExpiry = 0;
+  }
+  localStorage.removeItem('yt2_gtoken');
+  updateSignInUI('');
+  setGS('', 'Not connected');
+  toast('Signed out', '');
+}
+
+function updateSignInUI(email) {
+  const info = g('gAccountInfo');
+  const btnIn = g('btnGSignIn');
+  const btnOut = g('btnGSignOut');
+  if (email) {
+    if (info) info.innerHTML = `<span style="color:var(--green);">✓ Signed in as</span> <strong>${email}</strong>`;
+    if (btnIn) btnIn.style.display = 'none';
+    if (btnOut) btnOut.style.display = '';
+  } else {
+    if (info) info.textContent = 'Not signed in';
+    if (btnIn) btnIn.style.display = '';
+    if (btnOut) btnOut.style.display = 'none';
+  }
+}
+
+// getValidToken — return current token if valid, null if expired
+// (GIS implicit flow does not support silent refresh — user must re-sign-in)
+async function getValidToken() {
+  if (_accessToken && _tokenExpiry > Date.now()) return _accessToken;
+  return null;
+}
+
+async function testConn() {
+  const sid = g('cfg_sid').value.trim();
+  const el  = g('connRes');
+  if (!sid) { el.textContent = 'Enter Spreadsheet ID first.'; return; }
+  if (!_accessToken) { el.textContent = 'Sign in with Google first.'; return; }
+  el.innerHTML = '<span class="spin"></span> Testing…';
+  try {
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sid}`, {
+      headers: { Authorization: 'Bearer ' + _accessToken }
+    });
+    const d = await r.json();
+    if (d.spreadsheetId) {
+      el.style.color = 'var(--green)';
+      el.textContent = '✓ Connected: "' + d.properties.title + '"';
+      setGS('on', 'Connected');
+    } else {
+      el.style.color = 'var(--red)';
+      el.textContent = '✗ ' + (d.error?.message || 'Failed');
+    }
+  } catch(e) { el.style.color = 'var(--red)'; el.textContent = '✗ Network error'; }
+}
+
+function setGS(state, label) {
+  g('gsDot').className = 'gs-dot ' + (state==='on'?'on':state==='err'?'err':'');
+  g('gsLbl').textContent = label;
+}
+
+// ═══════════════════════════════════════════════
+// LOCAL STORAGE
+// ═══════════════════════════════════════════════
+function loadLocal() {
+  const r=localStorage.getItem('yt2_recv'); if(r) recv=JSON.parse(r);
+  const d=localStorage.getItem('yt2_disp'); if(d) disp=JSON.parse(d);
+  const c=localStorage.getItem('yt2_completed'); if(c) completedLots=new Set(JSON.parse(c));
+}
+function saveLocal() {
+  localStorage.setItem('yt2_recv', JSON.stringify(recv));
+  localStorage.setItem('yt2_disp', JSON.stringify(disp));
+  localStorage.setItem('yt2_completed', JSON.stringify([...completedLots]));
+}
+
+// ═══════════════════════════════════════════════
+// GOOGLE SHEETS — OAuth token based (no API key)
+// ═══════════════════════════════════════════════
+const R_HDR_LABELS = ['ID','Date','Challan No.','Company','Lot No.','Double Lot No.','Shade/Colour','Count','TPI','Blend','No. of Bags','Weight (kg)','JW Rate (₹/kg)','Vehicle No.','Status','Remarks','Timestamp','Allowed Shortage %','Single Cone Tip','Double Cone Tip','Shade Card No.','Paper Cone Received'];
+const D_HDR_LABELS = ['ID','Date','Challan No.','Company','Lot No.','Shade/Colour','Count','TPI','Blend','No. of Bags','Weight (kg)','JW Rate (₹/kg)','Form (D/R/S)','Plant','Vehicle No.','Remark','Timestamp'];
+const CH_HDR_LABELS = ['Timestamp','Tab','Action','Detail'];
+
+async function ensureTabs() {
+  if (!cfg.sid || cfg.sid === 'YOUR_SPREADSHEET_ID_HERE') return;
+  const token = await getValidToken(); if (!token) return;
+  try {
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const d = await r.json();
+    const existing = (d.sheets||[]).map(s => s.properties.title);
+    const spreadsheetId = cfg.sid;
+
+    // Create missing sheets
+    const toCreate = ['Receipts','Dispatch','ChangeHistory'].filter(n => !existing.includes(n));
+    if (toCreate.length) {
+      const requests = toCreate.map(title => ({ addSheet: { properties: { title } } }));
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ requests })
+      });
+    }
+
+    // Write headers to each sheet
+    const headerMap = {
+      'Receipts':      R_HDR_LABELS,
+      'Dispatch':      D_HDR_LABELS,
+      'ChangeHistory': CH_HDR_LABELS
+    };
+    for (const [tab, hdr] of Object.entries(headerMap)) {
+      // Check if row 1 already has data
+      const check = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab+'!A1:A1')}`,
+        { headers: { Authorization: 'Bearer ' + token } }
+      );
+      const checkD = await check.json();
+      if (!checkD.values || !checkD.values.length) {
+        // Write header row
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab+'!A1')}?valueInputOption=RAW`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ values: [hdr] })
+          }
+        );
+        // Format header row: bold, freeze, background colour
+        const sheetId = (await getSheetId(spreadsheetId, tab, token));
+        if (sheetId !== null) {
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ requests: [
+              // Bold + background
+              { repeatCell: {
+                range: { sheetId, startRowIndex:0, endRowIndex:1 },
+                cell: { userEnteredFormat: {
+                  textFormat: { bold: true, foregroundColor:{red:1,green:1,blue:1} },
+                  backgroundColor: { red:0.067, green:0.067, blue:0.067 }
+                }},
+                fields: 'userEnteredFormat(textFormat,backgroundColor)'
+              }},
+              // Freeze header row
+              { updateSheetProperties: {
+                properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+                fields: 'gridProperties.frozenRowCount'
+              }}
+            ]})
+          });
+        }
+      }
+    }
+  } catch(e) { console.warn('ensureTabs:', e); }
+}
+
+async function getSheetId(spreadsheetId, tabName, token) {
+  try {
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const d = await r.json();
+    const sheet = (d.sheets||[]).find(s => s.properties.title === tabName);
+    return sheet ? sheet.properties.sheetId : null;
+  } catch(e) { return null; }
+}
+async function appendRow(tabName, rowData) {
+  if (!cfg.sid) return false;
+  const token = await getValidToken(); if (!token) return false;
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent(tabName+'!A1')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ values: [rowData] })
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
+async function syncSheets() {
+  if (!cfg.sid || cfg.sid === 'YOUR_SPREADSHEET_ID_HERE') {
+    setGS('err', 'Sheet ID not set'); return;
+  }
+  const token = await getValidToken();
+  if (!token) {
+    setGS('err', 'Session expired');
+    toast('Session expired — please sign in again', 'err');
+    updateSignInUI('');
+    g('firstRunModal').classList.add('open');
+    return;
+  }
+  setGS('on', 'Syncing…');
+  try {
+    const hdr = { Authorization: 'Bearer ' + token };
+    const [rr, rd] = await Promise.all([
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/Receipts!A2:R`, { headers: hdr }),
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/Dispatch!A2:Q`, { headers: hdr })
+    ]);
+    if (rr.status === 401 || rd.status === 401) {
+      _accessToken = null; _tokenExpiry = 0;
+      localStorage.removeItem('yt2_gtoken');
+      setGS('err', 'Session expired');
+      updateSignInUI('');
+      g('firstRunModal').classList.add('open');
+      toast('Session expired — please sign in again', 'err');
+      return;
+    }
+    if (rr.status === 403 || rd.status === 403) {
+      setGS('err', 'Permission denied');
+      toast('Permission denied — share the sheet as "Anyone with link can edit"', 'err');
+      return;
+    }
+    const rj = await rr.json(), dj = await rd.json();
+    if (rj.error) {
+      setGS('err', 'Error: '+rj.error.message);
+      toast('Sheets error: '+rj.error.message, 'err');
+      return;
+    }
+    if (rj.values?.length) {
+      recv = rj.values.map(row => ({
+        id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',altLot:row[5]||'',
+        shade:row[6]||'',count:row[7]||'',tpi:row[8]||'',blend:row[9]||'',bags:+row[10]||0,weight:+row[11]||0,
+        rate:+row[12]||0,vehicle:row[13]||'',status:row[14]||'Received',remarks:row[15]||'',
+        allowedShortage:+row[17]||0,singleConeTip:row[18]||'',doubleConeTip:row[19]||'',
+        shadeCard:row[20]||'',paperCone:+row[21]||0
+      }));
+    }
+    if (dj.values?.length) {
+      disp = dj.values.map(row => ({
+        id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',
+        shade:row[5]||'',count:row[6]||'',tpi:row[7]||'',blend:row[8]||'',bags:+row[9]||0,weight:+row[10]||0,
+        rate:+row[11]||0,form:row[12]||'D',plant:row[13]||'',vehicle:row[14]||'',remark:row[15]||''
+      }));
+    }
+    saveLocal(); renderAll(); setGS('on', 'Synced ✓');
+  } catch(e) {
+    setGS('err', 'Sync failed');
+    toast('Sync failed: ' + e.message, 'err');
+    console.error('Sync error:', e);
+  }
+}
+function syncNow() { syncSheets(); }
+
+// ═══════════════════════════════════════════════
+// DUPLICATE CHECK
+// ═══════════════════════════════════════════════
+function checkDuplicate(tab, lotNo) {
+  if (!lotNo) return null;
+  if (tab === 'recv') {
+    // Sum up all existing receipts for this lot
+    const existing = recv.filter(r => r.lotNo.trim().toLowerCase() === lotNo.trim().toLowerCase());
+    if (existing.length === 0) return null;
+    const totalBags = existing.reduce((s,r) => s+r.bags, 0);
+    const totalWt = existing.reduce((s,r) => s+r.weight, 0);
+    return { existing, totalBags, totalWt, latest: existing[existing.length-1] };
+  } else {
+    const existing = disp.filter(d => d.lotNo.trim().toLowerCase() === lotNo.trim().toLowerCase());
+    if (existing.length === 0) return null;
+    const totalBags = existing.reduce((s,d) => s+d.bags, 0);
+    const totalWt = existing.reduce((s,d) => s+d.weight, 0);
+    return { existing, totalBags, totalWt, latest: existing[existing.length-1] };
+  }
+}
+
+// ═══════════════════════════════════════════════
+// RECEIVE — LOT INPUT HANDLER + ATTRIBUTE PREFILL
+// ═══════════════════════════════════════════════
+function onRLotInput() {
+  const lot    = g('r_lot').value.trim();
+  const co     = g('r_co').value.trim();
+  const banner = g('recvDupBanner');
+  if (!lot || lot.length < 2) {
+    banner.classList.remove('show');
+    clearRecvPrefill();
+    return;
+  }
+
+  // Find existing entry with same lot (prefer same company if selected)
+  let existing = recv.find(r =>
+    r.lotNo.trim().toLowerCase() === lot.toLowerCase() &&
+    r.company.trim().toLowerCase() === co.toLowerCase()
+  );
+  if (!existing) {
+    // Fallback — match any company
+    existing = recv.find(r => r.lotNo.trim().toLowerCase() === lot.toLowerCase());
+  }
+
+  if (existing) {
+    // ── PREFILL all attributes ──
+    setSelVal('r_co',    existing.company);
+    g('r_shade').value   = existing.shade   || '';
+    setSelVal('r_count', existing.count);
+    g('r_tpi').value     = existing.tpi     || '';
+    setSelVal('r_blend', existing.blend);
+    g('r_rate').value    = existing.rate    || '';
+    g('r_shortage').value= existing.allowedShortage || '';
+    g('r_altlot').value  = existing.altLot  || '';
+
+    // Highlight prefilled fields in blue
+    ['r_co','r_shade','r_count','r_tpi','r_blend','r_rate','r_shortage'].forEach(id => {
+      const el = g(id); if (el) el.classList.add('prefilled');
+    });
+
+    // Show info banner
+    g('recvDupText').textContent =
+      `Lot "${existing.lotNo}" (${existing.company}) — attributes pre-filled. ` +
+      `Current total: ${fmtKg(existing.weight)} kg / ${existing.bags} bags. ` +
+      `New entry will be added as separate row with today's date.`;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+    clearRecvPrefill();
+  }
+}
+
+function clearRecvPrefill() {
+  ['r_co','r_shade','r_count','r_tpi','r_blend','r_rate','r_shortage'].forEach(id => {
+    const el = g(id); if (el) el.classList.remove('prefilled');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// DISPATCH — LOT SELECT AUTO-FILL
+// ═══════════════════════════════════════════════
+function onDLotInput() {
+  const lot = g('d_lot').value.trim();
+  if (!lot) { clearAutofill(); return; }
+  // Try exact match first, then partial match
+  let match = recv.filter(r => r.lotNo.trim().toLowerCase() === lot.toLowerCase());
+  if (match.length === 0) {
+    match = recv.filter(r => r.lotNo.trim().toLowerCase().startsWith(lot.toLowerCase()));
+  }
+  if (match.length > 0) {
+    autofillDispatch(match[0]);
+  } else {
+    clearAutofill();
+  }
+  // Check dispatch duplicate
+  const dup = checkDuplicate('disp', lot);
+  const banner = g('dispDupBanner');
+  if (dup && lot.length > 2) {
+    g('dispDupText').textContent = `Lot "${lot}" was already dispatched — ${dup.existing.length} entr${dup.existing.length>1?'ies':'y'}, total ${fmtKg(dup.totalWt)} kg. Merge?`;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+function onDLotChange() { onDLotInput(); }
+
+function autofillDispatch(recvEntry) {
+  // Set values from receipt
+  setSelVal('d_co', recvEntry.company);
+  setSelVal('d_count', recvEntry.count);
+  setSelVal('d_blend', recvEntry.blend);
+  g('d_shade').value = recvEntry.shade || '';
+  g('d_tpi').value = recvEntry.tpi || '';
+  // Highlight prefilled fields
+  ['d_co','d_count','d_blend','d_shade','d_tpi'].forEach(id => {
+    const el = g(id); if (el) el.classList.add('prefilled');
+  });
+  // Show banner
+  const banner = g('dispAutofillBanner');
+  g('dispAutofillText').textContent = `Auto-filled from receipt: ${recvEntry.company} | ${recvEntry.count} | ${recvEntry.shade||'—'} | TPI: ${recvEntry.tpi||'—'}`;
+  banner.classList.add('show');
+  g('lotSearchHint').textContent = '✓ matched';
+}
+function clearAutofill() {
+  ['d_co','d_count','d_blend','d_shade','d_tpi'].forEach(id => {
+    const el = g(id); if (el) el.classList.remove('prefilled');
+  });
+  g('dispAutofillBanner').classList.remove('show');
+  g('lotSearchHint').textContent = '';
+}
+
+// Set a select value — if option doesn't exist, add it temporarily
+function setSelVal(id, val) {
+  const el = g(id); if (!el || !val) return;
+  // Find existing option
+  let found = false;
+  for (let opt of el.options) { if (opt.value === val) { el.value = val; found = true; break; } }
+  if (!found) {
+    const opt = new Option(val, val);
+    el.appendChild(opt);
+    el.value = val;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// MERGE MODAL
+// ═══════════════════════════════════════════════
+function openMergeModal(tab) {
+  // Build entry from current form values
+  const entry = tab === 'recv' ? getCurrentRecvEntry() : getCurrentDispEntry();
+  if (!entry) return;
+  const dup = checkDuplicate(tab, entry.lotNo);
+  if (!dup) return;
+
+  mergeCtx = { tab, entry, dup };
+
+  g('mergeMsub').textContent = `Lot "${entry.lotNo}" already exists in ${tab==='recv'?'Order Receive':'Dispatch'}. Choose to merge (add quantities) or save as a separate new entry.`;
+
+  const latest = dup.latest;
+  const fields = tab === 'recv'
+    ? [['Company', latest.company, entry.company], ['Count', latest.count, entry.count],
+       ['Shade', latest.shade, entry.shade], ['TPI', latest.tpi||'—', entry.tpi||'—']]
+    : [['Company', latest.company, entry.company], ['Count', latest.count||'—', entry.count||'—'],
+       ['Form', latest.form||'—', entry.form||'—'], ['Shade', latest.shade||'—', entry.shade||'—']];
+
+  g('mergeDiffRows').innerHTML = fields.map(([label, ex, nw]) => `
+    <div class="merge-row" style="margin-bottom:4px;">
+      <div><div class="merge-field" style="color:var(--text2)">${label}</div></div>
+      <div><div class="merge-field">${ex||'—'}</div></div>
+      <div><div class="merge-field merge-new">${nw||'—'}</div></div>
+    </div>`).join('');
+
+  const newBags = dup.totalBags + (entry.bags||0);
+  const newWt = dup.totalWt + (entry.weight||0);
+  g('mergeExBags').textContent = `${dup.totalBags} bags`;
+  g('mergeExWt').textContent = fmtKg(dup.totalWt) + ' kg';
+  g('mergeNewBags').textContent = `→ ${newBags} bags`;
+  g('mergeNewWt').textContent = `→ ${fmtKg(newWt)} kg`;
+
+  openModal('mergeModal');
+}
+
+function getCurrentRecvEntry() {
+  return {
+    lotNo: g('r_lot').value.trim(), company: g('r_co').value, count: g('r_count').value,
+    shade: g('r_shade').value.trim(), tpi: g('r_tpi').value.trim(),
+    bags: parseFloat(g('r_bags').value)||0, weight: parseFloat(g('r_weight').value)||0
+  };
+}
+function getCurrentDispEntry() {
+  return {
+    lotNo: g('d_lot').value.trim(), company: g('d_co').value, count: g('d_count').value,
+    shade: g('d_shade').value.trim(), tpi: g('d_tpi').value.trim(),
+    form: g('d_form').value,
+    bags: parseFloat(g('d_bags').value)||0, weight: parseFloat(g('d_weight').value)||0
+  };
+}
+
+function proceedMerge() {
+  // Find the FIRST receipt entry for this lot and update its bags + weight
+  const { tab, entry, dup } = mergeCtx;
+  closeModal('mergeModal');
+  if (tab === 'recv') {
+    // Update first matching entry (aggregate)
+    const idx = recv.findIndex(r => r.lotNo.trim().toLowerCase() === entry.lotNo.trim().toLowerCase());
+    if (idx >= 0) {
+      recv[idx].bags += (entry.bags||0);
+      recv[idx].weight += (entry.weight||0);
+      recv[idx].remarks = (recv[idx].remarks ? recv[idx].remarks+'; ' : '') + `Merged +${entry.bags}bags/${fmtKg(entry.weight)}kg on ${today()}`;
+      saveLocal(); renderAll();
+      appendRow('ChangeHistory', [new Date().toISOString(),'Receipts','MERGE',`Lot ${entry.lotNo} merged +${entry.bags}bags +${entry.weight}kg`]);
+      toast(`✓ Merged into existing lot ${entry.lotNo}`, 'ok');
+      clearForm('recv');
+    }
+  } else {
+    const idx = disp.findIndex(d => d.lotNo.trim().toLowerCase() === entry.lotNo.trim().toLowerCase());
+    if (idx >= 0) {
+      disp[idx].bags += (entry.bags||0);
+      disp[idx].weight += (entry.weight||0);
+      disp[idx].remark = (disp[idx].remark ? disp[idx].remark+'; ' : '') + `Merged +${entry.bags}bags/${fmtKg(entry.weight)}kg on ${today()}`;
+      saveLocal(); renderAll();
+      appendRow('ChangeHistory', [new Date().toISOString(),'Dispatch','MERGE',`Lot ${entry.lotNo} merged +${entry.bags}bags +${entry.weight}kg`]);
+      toast(`✓ Merged into existing dispatch for lot ${entry.lotNo}`, 'ok');
+      clearForm('disp');
+    }
+  }
+  g(mergeCtx.tab==='recv'?'recvDupBanner':'dispDupBanner').classList.remove('show');
+}
+
+function proceedAsNew() {
+  closeModal('mergeModal');
+  g(mergeCtx.tab==='recv'?'recvDupBanner':'dispDupBanner').classList.remove('show');
+  // Just let them save normally
+  if (mergeCtx.tab === 'recv') saveReceive(true);
+  else saveDispatch(true);
+}
+
+// ═══════════════════════════════════════════════
+// SAVE RECEIVE
+// ═══════════════════════════════════════════════
+async function saveReceive(skipDupCheck=false) {
+  const date=g('r_date').value, challan=g('r_challan').value.trim(),
+        co=g('r_co').value, lot=g('r_lot').value.trim(),
+        wt=parseFloat(g('r_weight').value), bags=parseFloat(g('r_bags').value);
+  if (!date||!challan||!co||!lot||!wt||!bags) { toast('Fill required fields (*)','err'); return; }
+
+  const btn=g('btnR'); btn.disabled=true; g('rSt').innerHTML='<span class="spin"></span> Saving…';
+  const e = {
+    id:'R'+Date.now(), date, challan, company:co, lotNo:lot,
+    altLot:g('r_altlot').value.trim(), shade:g('r_shade').value.trim(),
+    count:g('r_count').value, tpi:g('r_tpi').value.trim(),
+    blend:g('r_blend').value, bags, weight:wt,
+    rate:parseFloat(g('r_rate').value)||0,
+    allowedShortage:parseFloat(g('r_shortage').value)||0,
+    vehicle:g('r_vehicle').value.trim(),
+    singleConeTip:g('r_singleconetip').value.trim(),
+    doubleConeTip:g('r_doubleconetip').value.trim(),
+    shadeCard:g('r_shadecard').value.trim(),
+    paperCone:parseFloat(g('r_papercone').value)||0,
+    status:g('r_status').value, remarks:g('r_remarks').value.trim()
+  };
+  recv.push(e); saveLocal();
+  const row=[e.id,e.date,e.challan,e.company,e.lotNo,e.altLot,e.shade,e.count,e.tpi,e.blend,
+    e.bags,e.weight,e.rate,e.vehicle,e.status,e.remarks,new Date().toISOString(),e.allowedShortage,
+    e.singleConeTip,e.doubleConeTip,e.shadeCard,e.paperCone];
+  const ok = await appendRow('Receipts', row);
+  await appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','ADD',
+    `Lot ${e.lotNo} | ${e.company} | ${e.weight}kg | ${e.bags}bags | ${date}`]);
+  renderAll(); clearForm('recv'); btn.disabled=false; g('rSt').textContent='';
+  toast(ok?'✓ Saved to Google Sheets':'✓ Saved locally','ok');
+}
+
+// ═══════════════════════════════════════════════
+// DISPATCH — COMPANY FILTER → LOT DROPDOWN
+// ═══════════════════════════════════════════════
+function onDCoChange() {
+  // Re-populate all lot rows with company-filtered datalist
+  populateLotDatalist();
+}
+
+function populateLotDatalist() {
+  const co = g('d_co')?.value;
+  // Get lots for this company from receipts
+  const lots = uniq(recv.filter(r => !co || r.company===co).map(r=>r.lotNo));
+  // Update all row datalists
+  document.querySelectorAll('.row-lot-dl').forEach(dl => {
+    dl.innerHTML = lots.map(l=>`<option value="${l}">`).join('');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// DISPATCH — MULTI LOT ROWS
+// ═══════════════════════════════════════════════
+
+function addLotRow() {
+  lotRowCount++;
+  const idx = lotRowCount;
+  const co = g('d_co').value;
+  const dlId = `dl_rowlot_${idx}`;
+  const lots = uniq(recv.filter(r => !co || r.company===co).map(r=>r.lotNo));
+  const countOpts = master.counts.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const blendOpts = master.blends.map(b=>`<option value="${b}">${b}</option>`).join('');
+
+  const tr = document.createElement('tr');
+  tr.id = `lotrow_${idx}`;
+  tr.innerHTML = `
+    <td style="color:var(--text3);font-weight:600">${idx}</td>
+    <td>
+      <datalist id="${dlId}">${lots.map(l=>`<option value="${l}">`).join('')}</datalist>
+      <input type="text" list="${dlId}" placeholder="Lot No." class="row-lot-input" id="rl_lot_${idx}"
+        oninput="onRowLotInput(${idx})" onchange="onRowLotInput(${idx})" onblur="onRowLotInput(${idx})"
+        style="min-width:160px;">
+    </td>
+    <td><input type="text" id="rl_shade_${idx}" placeholder="Auto" list="dl_shade2" style="min-width:100px;"></td>
+    <td>
+      <select id="rl_count_${idx}" style="min-width:110px;">
+        <option value="">—</option>${countOpts}
+      </select>
+    </td>
+    <td><input type="text" id="rl_tpi_${idx}" placeholder="Auto" style="min-width:60px;"></td>
+    <td>
+      <select id="rl_blend_${idx}" style="min-width:80px;">
+        <option value="">—</option>${blendOpts}
+      </select>
+    </td>
+    <td><input type="number" id="rl_bags_${idx}" placeholder="0" min="0" style="min-width:70px;" oninput="updateTotals()"></td>
+    <td><input type="number" id="rl_wt_${idx}" placeholder="0.00" step="0.01" min="0" style="min-width:100px;" oninput="updateTotals()"></td>
+    <td><input type="number" id="rl_rate_${idx}" placeholder="—" step="0.01" style="min-width:80px;"></td>
+    <td id="rl_pending_${idx}" class="num" style="font-weight:700;color:var(--text3);min-width:100px;font-size:12px;">—</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="removeLotRow(${idx})" style="color:var(--red);border-color:var(--red-dim);">🗑</button></td>
+  `;
+  g('lotRowsTbody').appendChild(tr);
+  updateTotals();
+  updateLotRowNumbers();
+}
+
+function removeLotRow(idx) {
+  const tr = g(`lotrow_${idx}`);
+  if (tr) tr.remove();
+  updateTotals();
+  updateLotRowNumbers();
+}
+
+function updateLotRowNumbers() {
+  const rows = g('lotRowsTbody').querySelectorAll('tr');
+  rows.forEach((tr,i) => {
+    const firstTd = tr.querySelector('td:first-child');
+    if (firstTd) firstTd.textContent = i+1;
+  });
+  g('dLotCount').textContent = rows.length ? `(${rows.length} lot${rows.length>1?'s':''})` : '';
+}
+
+function updateTotals() {
+  const rows = g('lotRowsTbody').querySelectorAll('tr');
+  let totalBags=0, totalWt=0;
+  rows.forEach(tr => {
+    const id = tr.id.replace('lotrow_','');
+    totalBags += parseFloat(g(`rl_bags_${id}`)?.value)||0;
+    totalWt   += parseFloat(g(`rl_wt_${id}`)?.value)||0;
+  });
+  const bar = g('dispTotalsBar');
+  if(rows.length>0){
+    bar.style.display='flex';
+    g('tot_lots').textContent = rows.length;
+    g('tot_bags').textContent = totalBags;
+    g('tot_wt').textContent   = totalWt.toFixed(2);
+  } else {
+    bar.style.display='none';
+  }
+}
+
+function onRowLotInput(idx) {
+  const lotVal = g(`rl_lot_${idx}`)?.value.trim();
+  const pendingCell = g(`rl_pending_${idx}`);
+
+  if (!lotVal) {
+    if (pendingCell) { pendingCell.textContent = '—'; pendingCell.style.color = 'var(--text3)'; }
+    return;
+  }
+
+  // Find matching receipt entry
+  const match = recv.find(r => r.lotNo.trim().toLowerCase() === lotVal.toLowerCase());
+  if (match) {
+    // Auto-fill shade, count, tpi, blend for this row
+    const countEl = g(`rl_count_${idx}`);
+    const blendEl = g(`rl_blend_${idx}`);
+    g(`rl_shade_${idx}`).value = match.shade||'';
+    g(`rl_tpi_${idx}`).value   = match.tpi||'';
+    if(countEl) setSelVal(`rl_count_${idx}`, match.count);
+    if(blendEl) setSelVal(`rl_blend_${idx}`, match.blend);
+
+    // ── AUTO-FETCH JW RATE from receipt into row rate (if empty) ──
+    const rateEl = g(`rl_rate_${idx}`);
+    if (rateEl && !rateEl.value && match.rate) {
+      rateEl.value = match.rate;
+      rateEl.classList.add('prefilled');
+    }
+
+    // ── AUTO-FETCH JW RATE into challan-level rate field (if empty) ──
+    const challanRateEl = g('d_rate');
+    if (challanRateEl && !challanRateEl.value && match.rate) {
+      challanRateEl.value = match.rate;
+      challanRateEl.classList.add('prefilled');
+    }
+
+    // ── AUTO-FETCH PLANT from most recent dispatch of this lot (if empty) ──
+    const plantEl = g('d_plant');
+    if (plantEl && !plantEl.value) {
+      const prevDisp = [...disp]
+        .filter(d => d.lotNo.trim().toLowerCase() === lotVal.toLowerCase() && d.plant)
+        .sort((a,b) => b.date.localeCompare(a.date));
+      if (prevDisp.length) {
+        plantEl.value = prevDisp[0].plant;
+        plantEl.classList.add('prefilled');
+      }
+    }
+
+    // Highlight prefilled row fields
+    [`rl_shade_${idx}`,`rl_count_${idx}`,`rl_tpi_${idx}`,`rl_blend_${idx}`].forEach(id=>{
+      const el=g(id); if(el) el.classList.add('prefilled');
+    });
+
+    // Set company if not already selected
+    const coEl = g('d_co');
+    if(coEl && !coEl.value && match.company) setSelVal('d_co', match.company);
+
+    // ── PENDING QTY CALCULATION ──
+    const totalRecv   = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>s+r.weight,0);
+    const allowedPct  = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>Math.max(s,r.allowedShortage||0),0);
+    const allowedWaste= totalRecv * (allowedPct/100);
+    const totalDisp   = disp.filter(d=>d.lotNo===match.lotNo && d.form!=='R').reduce((s,d)=>s+d.weight,0);
+    const totalReturn = disp.filter(d=>d.lotNo===match.lotNo && d.form==='R').reduce((s,d)=>s+d.weight,0);
+    const pending     = Math.max(0, totalRecv - allowedWaste - totalDisp - totalReturn);
+
+    if (pendingCell) {
+      if (allowedPct > 0) {
+        pendingCell.textContent = fmtKg(pending) + ' kg';
+        pendingCell.style.color = pending <= 0 ? 'var(--green)' : 'var(--amber)';
+        pendingCell.title = `Recv: ${fmtKg(totalRecv)} − Allowed(${allowedPct}%): ${fmtKg(allowedWaste)} − Disp: ${fmtKg(totalDisp)} − Return: ${fmtKg(totalReturn)}`;
+      } else {
+        const balance = Math.max(0, totalRecv - totalDisp - totalReturn);
+        pendingCell.textContent = fmtKg(balance) + ' kg';
+        pendingCell.style.color = balance <= 0 ? 'var(--green)' : 'var(--blue)';
+        pendingCell.title = `Balance = Recv(${fmtKg(totalRecv)}) − Disp(${fmtKg(totalDisp)}) − Return(${fmtKg(totalReturn)}). No allowed shortage % set.`;
+      }
+    }
+  } else {
+    if (pendingCell) { pendingCell.textContent = '—'; pendingCell.style.color = 'var(--text3)'; }
+  }
+}
+
+// ── CHALLAN UNIQUENESS CHECK ──
+function checkChallanUnique() {
+  const val = g('d_challan')?.value.trim();
+  const statusEl = g('challanStatus');
+  const inputEl  = g('d_challan');
+  if (!statusEl || !inputEl) return true;
+  if (!val) {
+    statusEl.textContent = '';
+    inputEl.style.borderColor = '';
+    return false;
+  }
+  // Check against existing dispatches
+  const exists = disp.some(d => d.challan.trim().toLowerCase() === val.toLowerCase());
+  if (exists) {
+    statusEl.innerHTML = '<span style="color:var(--red);">⚠ Challan already exists</span>';
+    inputEl.style.borderColor = 'var(--red)';
+    return false;
+  } else {
+    statusEl.innerHTML = '<span style="color:var(--green);">✓ Unique</span>';
+    inputEl.style.borderColor = 'var(--green)';
+    return true;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SAVE DISPATCH (multi-lot)
+// ═══════════════════════════════════════════════
+async function saveDispatch() {
+  const date=g('d_date').value, challan=g('d_challan').value.trim(),
+        co=g('d_co').value, form=g('d_form').value,
+        vehicle=g('d_vehicle').value.trim(), plant=g('d_plant').value.trim(),
+        remark=g('d_remark').value.trim(), defaultRate=parseFloat(g('d_rate').value)||0;
+
+  if (!date||!challan||!co) { toast('Fill Date, Challan No. and Company (*)','err'); return; }
+
+  // ── UNIQUE CHALLAN CHECK ──
+  const challanExists = disp.some(d => d.challan.trim().toLowerCase() === challan.toLowerCase());
+  if (challanExists) {
+    toast(`⚠ Challan No. "${challan}" already exists in dispatch records. Each challan must be unique.`, 'err');
+    g('d_challan').style.borderColor = 'var(--red)';
+    g('d_challan').focus();
+    return;
+  }
+
+  // Collect lot rows
+  const rows = g('lotRowsTbody').querySelectorAll('tr');
+  if (!rows.length) { toast('Add at least one lot row','err'); return; }
+
+  const entries = [];
+  let hasError = false;
+  rows.forEach(tr => {
+    const idx = tr.id.replace('lotrow_','');
+    const lot   = g(`rl_lot_${idx}`)?.value.trim();
+    const bags  = parseFloat(g(`rl_bags_${idx}`)?.value)||0;
+    const wt    = parseFloat(g(`rl_wt_${idx}`)?.value)||0;
+    if (!lot||!bags||!wt) { hasError=true; tr.style.outline='2px solid var(--red)'; return; }
+    tr.style.outline='';
+    entries.push({
+      lot, bags, wt,
+      shade: g(`rl_shade_${idx}`)?.value.trim()||'',
+      count: g(`rl_count_${idx}`)?.value||'',
+      tpi:   g(`rl_tpi_${idx}`)?.value.trim()||'',
+      blend: g(`rl_blend_${idx}`)?.value||'',
+      rate:  parseFloat(g(`rl_rate_${idx}`)?.value)||defaultRate
+    });
+  });
+  if (hasError) { toast('Fill Lot No., Bags and Weight for all rows (highlighted in red)','err'); return; }
+
+  const btn=g('btnD'); btn.disabled=true; g('dSt').innerHTML='<span class="spin"></span> Saving…';
+  let savedCount=0;
+  for (const en of entries) {
+    const e = {
+      id:'D'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      date, challan, company:co, lotNo:en.lot,
+      shade:en.shade, count:en.count, tpi:en.tpi, blend:en.blend,
+      bags:en.bags, weight:en.wt, rate:en.rate,
+      form, plant, vehicle, remark
+    };
+    disp.push(e);
+    const row=[e.id,e.date,e.challan,e.company,e.lotNo,e.shade,e.count,e.tpi,e.blend,
+      e.bags,e.weight,e.rate,e.form,e.plant,e.vehicle,e.remark,new Date().toISOString()];
+    await appendRow('Dispatch', row);
+    savedCount++;
+  }
+  await appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','ADD',
+    `Challan ${challan} | ${co} | ${entries.length} lots | ${entries.reduce((s,e)=>s+e.wt,0).toFixed(2)}kg`]);
+  saveLocal(); renderAll(); clearForm('disp');
+  btn.disabled=false; g('dSt').textContent='';
+  toast(`✓ Saved ${savedCount} lot${savedCount>1?'s':''} under Challan ${challan}`, 'ok');
+}
+
+// ═══════════════════════════════════════════════
+// DATE FILTER
+// ═══════════════════════════════════════════════
+function byDate(rows, tab) {
+  const f=dateF[tab], now=new Date(), td=today();
+  if(f==='all') return rows;
+  if(f==='today') return rows.filter(r=>r.date===td);
+  if(f==='yesterday') { const y=new Date(now);y.setDate(y.getDate()-1);return rows.filter(r=>r.date===y.toISOString().split('T')[0]); }
+  if(f==='week') { const w=new Date(now);w.setDate(w.getDate()-7);return rows.filter(r=>r.date>=w.toISOString().split('T')[0]); }
+  if(f==='month') { const m=new Date(now);m.setDate(m.getDate()-30);return rows.filter(r=>r.date>=m.toISOString().split('T')[0]); }
+  if(f==='custom') {
+    const from=g('dash_from')?.value, to=g('dash_to')?.value;
+    let out=[...rows]; if(from)out=out.filter(r=>r.date>=from); if(to)out=out.filter(r=>r.date<=to); return out;
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER RECEIVE TABLE
+// ═══════════════════════════════════════════════
+function renderR() {
+  let rows=[...recv];
+  const s=g('srchR').value.toLowerCase(), st=g('fRSt').value, co=g('fRCo').value;
+  rows=byDate(rows,'recv');
+  if(s) rows=rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(s));
+  if(st) rows=rows.filter(r=>r.status===st);
+  if(co) rows=rows.filter(r=>r.company===co);
+  rows.sort((a,b)=>b.date.localeCompare(a.date));
+  const tb=g('tbR'), em=g('emR');
+  if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
+  tb.innerHTML=rows.map((r,i)=>`<tr>
+    <td style="color:var(--text3)">${i+1}</td><td>${r.date}</td>
+    <td style="color:var(--text3)">${r.challan}</td>
+    <td style="font-weight:500">${r.company}</td>
+    <td style="color:var(--amber);font-weight:600">${r.lotNo}</td>
+    <td style="color:var(--text3)">${r.altLot||'—'}</td>
+    <td>${r.shade||'—'}</td>
+    <td><span class="badge b-blue">${r.count||'—'}</span></td>
+    <td>${r.tpi||'—'}</td><td style="color:var(--text3)">${r.blend||'—'}</td>
+    <td>${r.singleConeTip||'—'}</td>
+    <td>${r.doubleConeTip||'—'}</td>
+    <td>${r.shadeCard||'—'}</td>
+    <td class="num">${r.paperCone||'—'}</td>
+    <td class="num">${r.bags}</td>
+    <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
+    <td class="num">${r.rate?'₹'+r.rate:'—'}</td>
+    <td>${sBadge(r.status)}</td>
+    <td style="display:flex;gap:4px;">
+      <button class="btn btn-ghost btn-sm" onclick="openEditModal('recv','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button>
+      <button class="btn btn-ghost btn-sm" onclick="del('recv','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button>
+    </td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER DISPATCH TABLE
+// ═══════════════════════════════════════════════
+function renderD() {
+  let rows=[...disp];
+  const s=g('srchD').value.toLowerCase(), co=g('fDCo').value, fm=g('fDForm').value;
+  rows=byDate(rows,'disp');
+  if(s) rows=rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(s));
+  if(co) rows=rows.filter(r=>r.company===co);
+  if(fm) rows=rows.filter(r=>r.form===fm);
+  rows.sort((a,b)=>b.date.localeCompare(a.date));
+  const tb=g('tbD'), em=g('emD');
+  if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
+  tb.innerHTML=rows.map((r,i)=>`<tr>
+    <td style="color:var(--text3)">${i+1}</td><td>${r.date}</td>
+    <td style="color:var(--text3)">${r.challan}</td>
+    <td style="font-weight:500">${r.company}</td>
+    <td style="color:var(--amber);font-weight:600">${r.lotNo}</td>
+    <td>${r.shade||'—'}</td>
+    <td><span class="badge b-blue">${r.count||'—'}</span></td>
+    <td>${r.tpi||'—'}</td><td style="color:var(--text3)">${r.blend||'—'}</td>
+    <td class="num">${r.bags}</td>
+    <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
+    <td class="num">${r.rate?'₹'+r.rate:'—'}</td>
+    <td>${formBadge(r.form)}</td>
+    <td style="color:var(--text3)">${r.plant||'—'}</td>
+    <td style="display:flex;gap:4px;">
+      <button class="btn btn-ghost btn-sm" onclick="openEditModal('disp','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button>
+      <button class="btn btn-ghost btn-sm" onclick="del('disp','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button>
+    </td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// LOT STATUS
+// ═══════════════════════════════════════════════
+function buildLots() {
+  const s=g('srchL').value.toLowerCase(), co=g('fLCo').value, st=g('fLSt').value,
+        cnt=g('fLCnt').value, tpi=g('fLTpi').value, shd=g('fLShd').value;
+  const lots={};
+
+  // Build from receipts
+  recv.forEach(r=>{
+    if(!r.lotNo) return;
+    if(!lots[r.lotNo]) lots[r.lotNo]={
+      lotNo:r.lotNo, altLot:r.altLot||'', company:r.company, shade:r.shade,
+      count:r.count, tpi:r.tpi, blend:r.blend, date:r.date, firstDate:r.date,
+      doubleConeTip:r.doubleConeTip||'',
+      recvKg:0, recvBags:0,
+      returnKg:0, returnBags:0,
+      dispKg:0, dispBags:0,
+      status:r.status, allowedShortage:r.allowedShortage||0
+    };
+    lots[r.lotNo].recvKg   += r.weight;
+    lots[r.lotNo].recvBags += r.bags;
+    if((r.allowedShortage||0) > lots[r.lotNo].allowedShortage)
+      lots[r.lotNo].allowedShortage = r.allowedShortage||0;
+    if(r.date > lots[r.lotNo].date) lots[r.lotNo].date = r.date;
+    // Track first (earliest) receipt date for ageing
+    if(r.date < lots[r.lotNo].firstDate) lots[r.lotNo].firstDate = r.date;
+    // Pick up doubleConeTip if not yet set
+    if(!lots[r.lotNo].doubleConeTip && r.doubleConeTip) lots[r.lotNo].doubleConeTip = r.doubleConeTip;
+  });
+
+  // Build from dispatches — split R-Return vs D/S
+  disp.forEach(d=>{
+    if(!d.lotNo) return;
+    if(!lots[d.lotNo]) lots[d.lotNo]={
+      lotNo:d.lotNo, altLot:'', company:d.company, shade:d.shade,
+      count:d.count, tpi:d.tpi, blend:d.blend, date:d.date, firstDate:d.date,
+      doubleConeTip:'',
+      recvKg:0, recvBags:0, returnKg:0, returnBags:0,
+      dispKg:0, dispBags:0, status:'Received', allowedShortage:0
+    };
+    if(d.form === 'R') {
+      // Return → deduct from received
+      lots[d.lotNo].returnKg   += d.weight;
+      lots[d.lotNo].returnBags += d.bags;
+    } else {
+      // Doubled / Sample / Other → actual dispatch
+      lots[d.lotNo].dispKg   += d.weight;
+      lots[d.lotNo].dispBags += d.bags;
+    }
+  });
+
+  let rows = Object.values(lots).map(l=>{
+    // Net received = received − returned
+    const netRecvKg   = Math.max(0, l.recvKg - l.returnKg);
+    const netRecvBags = Math.max(0, l.recvBags - l.returnBags);
+    const balKg   = Math.max(0, netRecvKg - l.dispKg);
+    const balBags = Math.max(0, netRecvBags - l.dispBags);
+    const pct     = netRecvKg>0 ? Math.min(100,(l.dispKg/netRecvKg)*100) : 0;
+    // Shortage = balance remaining after dispatch as % of net received
+    const shortagePct = netRecvKg>0 ? (balKg/netRecvKg*100) : 0;
+    const allowed = l.allowedShortage||0;
+
+    // Ageing = days since first receipt
+    const firstMs = l.firstDate ? new Date(l.firstDate).getTime() : null;
+    const ageing  = firstMs ? Math.floor((Date.now() - firstMs) / 86400000) : null;
+    const ageColor = ageing === null ? 'var(--text3)'
+      : ageing > 90 ? 'var(--red)'
+      : ageing > 30 ? 'var(--amber)'
+      : 'var(--green)';
+
+    // Status logic — manual completion overrides everything except Hold
+    let cs = l.status||'Received';
+    if(l.status==='Hold') cs='Hold';
+    else if(completedLots.has(l.lotNo)) cs='Completed';   // ← manual override
+    else if(l.dispKg===0 && l.returnKg===0) cs='Received';
+    else if(l.returnKg>0 && l.dispKg===0) cs='Returned';
+    else if(l.status==='In Process') cs='In Process';
+    else if(allowed>0 && shortagePct<=allowed) cs='Completed';
+    else if(balKg<=0.5) cs='Fully Dispatched';
+    else cs='Partial Dispatch';
+
+    return{...l, netRecvKg, netRecvBags, balKg, balBags, pct, shortagePct, allowed, cs, ageing, ageColor};
+  });
+
+  if(s)  rows=rows.filter(r=>(r.lotNo+r.company+(r.altLot||'')).toLowerCase().includes(s));
+  if(co) rows=rows.filter(r=>r.company===co);
+  if(st) rows=rows.filter(r=>r.cs===st);
+  if(cnt)rows=rows.filter(r=>r.count===cnt);
+  if(tpi)rows=rows.filter(r=>r.tpi===tpi);
+  if(shd)rows=rows.filter(r=>r.shade===shd);
+  rows.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const tb=g('tbL'), em=g('emL');
+  if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
+
+  tb.innerHTML=rows.map(l=>{
+    const sColor = l.allowed>0
+      ? (l.shortagePct<=l.allowed?'var(--green)':l.shortagePct<=(l.allowed*1.5)?'var(--amber)':'var(--red)')
+      : 'var(--text2)';
+    const hasReturn = l.returnKg>0;
+
+    // Pending Qty = RecvKg − (Allowed% × RecvKg) − DispKg − ReturnKg
+    // i.e. how much yarn still needs to be dispatched after accounting for allowed wastage
+    const allowedWastageKg = l.recvKg * (l.allowed/100);
+    const pendingQty = Math.max(0, l.recvKg - allowedWastageKg - l.dispKg - l.returnKg);
+    const pendingColor = pendingQty <= 0 ? 'var(--green)' : l.cs==='Completed'?'var(--text3)':'var(--amber)';
+
+    // Mark Done button — hide for Received and Returned statuses (no dispatch happened)
+    const isReceived = l.cs === 'Received' || l.cs === 'Returned';
+    const isManuallyCompleted = completedLots.has(l.lotNo);
+    const isAutoCompleted = l.cs === 'Completed' && !isManuallyCompleted;
+    let actionCell;
+    if (isManuallyCompleted) {
+      actionCell = `<button class="btn btn-ghost btn-sm" onclick="toggleLotComplete('${l.lotNo}')" style="color:var(--text3);font-size:10px;" title="Unmark as completed">↩ Unmark</button>`;
+    } else if (isAutoCompleted) {
+      actionCell = `<span style="font-size:10px;color:var(--green);">Auto ✓</span>`;
+    } else if (isReceived) {
+      actionCell = `<span style="font-size:10px;color:var(--text3);">—</span>`;
+    } else {
+      actionCell = `<button class="btn btn-ghost btn-sm" onclick="toggleLotComplete('${l.lotNo}')" style="color:var(--green);border-color:rgba(92,184,122,.3);font-size:10px;" title="Mark this lot as completed">✓ Mark Done</button>`;
+    }
+
+    return `<tr>
+    <td style="color:var(--amber);font-weight:600">${l.lotNo}</td>
+    <td style="color:var(--text3)">${l.altLot||'—'}</td>
+    <td style="font-weight:500">${l.company}</td>
+    <td>${l.shade||'—'}</td>
+    <td><span class="badge b-blue">${l.count||'—'}</span></td>
+    <td>${l.tpi||'—'}</td>
+    <td style="color:var(--text3)">${l.blend||'—'}</td>
+    <td>${l.doubleConeTip||'—'}</td>
+    <td>${l.date}</td>
+    <td class="num" style="font-weight:700;color:${l.ageColor};">${l.ageing !== null ? l.ageing + ' d' : '—'}</td>
+    <td class="num">${fmtKg(l.recvKg)}</td>
+    <td class="num" style="color:${hasReturn?'var(--red)':'var(--text3)'};">${hasReturn?'−'+fmtKg(l.returnKg):'—'}</td>
+    <td class="num" style="font-weight:600;color:${hasReturn?'var(--amber)':'var(--text)'}">${fmtKg(l.netRecvKg)}</td>
+    <td class="num">${fmtKg(l.dispKg)}</td>
+    <td class="num" style="font-weight:700;color:${l.balKg>0?'var(--green)':'var(--text3)'}">${fmtKg(l.balKg)}</td>
+    <td class="num">${l.recvBags}</td>
+    <td class="num">${l.dispBags}</td>
+    <td class="num" style="font-weight:600">${l.balBags}</td>
+    <td class="num" style="font-weight:700;color:${sColor}">${l.shortagePct.toFixed(2)}%</td>
+    <td class="num" style="color:var(--text3)">${l.allowed>0?l.allowed+'%':'—'}</td>
+    <td class="num" style="font-weight:700;color:${pendingColor};">${l.allowed>0 ? fmtKg(pendingQty) : '—'}</td>
+    <td><div class="pbar-wrap">
+      <div class="pbar"><div class="pbar-fill" style="width:${l.pct}%;background:${l.pct>=100?'var(--green)':l.pct>50?'var(--amber)':'var(--blue)'}"></div></div>
+      <div class="ppct">${l.pct.toFixed(0)}%</div>
+    </div></td>
+    <td>${lotBadge(l.cs)}</td>
+    <td>${actionCell}</td>
+  </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// MARK LOT COMPLETE / UNMARK
+// ═══════════════════════════════════════════════
+function toggleLotComplete(lotNo) {
+  if (completedLots.has(lotNo)) {
+    completedLots.delete(lotNo);
+    saveLocal();
+    buildLots();
+    toast(`Lot ${lotNo} unmarked — status reverted`, '');
+  } else {
+    completedLots.add(lotNo);
+    saveLocal();
+    buildLots();
+    appendRow('ChangeHistory',[new Date().toISOString(),'LotStatus','COMPLETED',`Lot ${lotNo} manually marked as Completed`]);
+    toast(`✓ Lot ${lotNo} marked as Completed`, 'ok');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function buildDash() {
+  const df=dateF.dash;
+  if(df==='all'&&(g('dash_from')?.value||g('dash_to')?.value)) dateF.dash='custom';
+  let rr=byDate([...recv],'dash'), dd=byDate([...disp],'dash');
+  const cnt=g('df_cnt').value, tpi=g('df_tpi').value, shd=g('df_shd').value, co=g('df_co').value, bld=g('df_bld').value;
+  if(cnt){rr=rr.filter(r=>r.count===cnt);dd=dd.filter(d=>d.count===cnt);}
+  if(tpi){rr=rr.filter(r=>r.tpi===tpi);dd=dd.filter(d=>d.tpi===tpi);}
+  if(shd){rr=rr.filter(r=>r.shade===shd);dd=dd.filter(d=>d.shade===shd);}
+  if(co){rr=rr.filter(r=>r.company===co);dd=dd.filter(d=>d.company===co);}
+  if(bld){rr=rr.filter(r=>r.blend===bld);dd=dd.filter(d=>d.blend===bld);}
+  // For dashboard: only D/S count as actual dispatch; R = return reduces received
+  const ddActual = dd.filter(d => d.form !== 'R');
+  const ddReturn = dd.filter(d => d.form === 'R');
+  const totalR   = rr.reduce((s,r)=>s+r.weight,0);
+  const totalRet = ddReturn.reduce((s,d)=>s+d.weight,0);  // returned to party
+  const totalD   = ddActual.reduce((s,d)=>s+d.weight,0);  // actually dispatched (twisted)
+  const netRecv  = Math.max(0, totalR - totalRet);         // net in house after returns
+  const stock    = Math.max(0, netRecv - totalD);
+  const rBags    = rr.reduce((s,r)=>s+r.bags,0);
+  const retBags  = ddReturn.reduce((s,d)=>s+d.bags,0);
+  const dBags    = ddActual.reduce((s,d)=>s+d.bags,0);
+  const allLots  = [...new Set(rr.map(r=>r.lotNo))];
+  const activeLots = allLots.filter(lot=>{
+    const rw  = rr.filter(r=>r.lotNo===lot).reduce((s,r)=>s+r.weight,0);
+    const ret = dd.filter(d=>d.lotNo===lot&&d.form==='R').reduce((s,d)=>s+d.weight,0);
+    const dw  = dd.filter(d=>d.lotNo===lot&&d.form!=='R').reduce((s,d)=>s+d.weight,0);
+    return Math.max(0,rw-ret)-dw > 0.5;
+  });
+  const pendKg = activeLots.reduce((s,lot)=>{
+    const rw  = rr.filter(r=>r.lotNo===lot).reduce((a,r)=>a+r.weight,0);
+    const ret = dd.filter(d=>d.lotNo===lot&&d.form==='R').reduce((a,d)=>a+d.weight,0);
+    const dw  = dd.filter(d=>d.lotNo===lot&&d.form!=='R').reduce((a,d)=>a+d.weight,0);
+    return s+Math.max(0,Math.max(0,rw-ret)-dw);
+  },0);
+  sg('k_recv', fmtKg(totalR));  sg('k_recv_s', rBags+' bags');
+  sg('k_disp', fmtKg(totalD));  sg('k_disp_s', dBags+' bags dispatched, '+fmtKg(totalRet)+' kg returned');
+  sg('k_stk',  fmtKg(stock));   sg('k_stk_s',  Math.max(0,rBags-retBags-dBags)+' bags');
+  sg('k_lots', activeLots.length); sg('k_lots_s','lots in progress');
+  sg('k_pend', fmtKg(pendKg));  sg('k_pend_s', activeLots.length+' lots pending');
+  const cos={};
+  rr.forEach(r=>{if(!cos[r.company])cos[r.company]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set(),last:''};cos[r.company].rKg+=r.weight;cos[r.company].rBags+=r.bags;cos[r.company].lots.add(r.lotNo);if(r.date>cos[r.company].last)cos[r.company].last=r.date;});
+  dd.forEach(d=>{
+    if(!cos[d.company])cos[d.company]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set(),last:''};
+    if(d.form==='R'){cos[d.company].rKg-=d.weight;cos[d.company].rBags-=d.bags;}
+    else{cos[d.company].dKg+=d.weight;cos[d.company].dBags+=d.bags;}
+    if(d.date>cos[d.company].last)cos[d.company].last=d.date;
+  });
+  g('tbCo').innerHTML=Object.entries(cos).sort((a,b)=>b[1].rKg-a[1].rKg).map(([nm,c])=>{
+    const bKg=Math.max(0,c.rKg-c.dKg), bBags=Math.max(0,c.rBags-c.dBags);
+    const acLots=[...c.lots].filter(lot=>{
+      const rw =rr.filter(r=>r.lotNo===lot).reduce((s,r)=>s+r.weight,0);
+      const ret=dd.filter(d=>d.lotNo===lot&&d.form==='R').reduce((s,d)=>s+d.weight,0);
+      const dw =dd.filter(d=>d.lotNo===lot&&d.form!=='R').reduce((s,d)=>s+d.weight,0);
+      return Math.max(0,rw-ret)-dw>0.5;
+    }).length;
+    return`<tr><td style="font-weight:600">${nm}</td><td class="num">${fmtKg(c.rKg)}</td><td class="num">${c.rBags}</td><td class="num">${fmtKg(c.dKg)}</td><td class="num">${c.dBags}</td><td class="num" style="font-weight:700;color:${bKg>0?'var(--green)':'var(--text3)'}">${fmtKg(bKg)}</td><td class="num">${bBags}</td><td class="num">${acLots}</td><td style="color:var(--text3)">${c.last||'—'}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No data yet</td></tr>';
+  const byCnt={};
+  rr.forEach(r=>{if(!r.count)return;if(!byCnt[r.count])byCnt[r.count]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set()};byCnt[r.count].rKg+=r.weight;byCnt[r.count].rBags+=r.bags;byCnt[r.count].lots.add(r.lotNo);});
+  dd.forEach(d=>{
+    if(!d.count)return;
+    if(!byCnt[d.count])byCnt[d.count]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set()};
+    if(d.form==='R'){byCnt[d.count].rKg-=d.weight;byCnt[d.count].rBags-=d.bags;}
+    else{byCnt[d.count].dKg+=d.weight;byCnt[d.count].dBags+=d.bags;}
+  });
+  g('tbByCnt').innerHTML=Object.entries(byCnt).sort((a,b)=>b[1].rKg-a[1].rKg).map(([k,v])=>{
+    const bKg=Math.max(0,v.rKg-v.dKg);return`<tr><td><span class="badge b-blue">${k}</span></td><td class="num" style="font-weight:700;color:var(--green)">${fmtKg(bKg)}</td><td class="num">${Math.max(0,v.rBags-v.dBags)}</td><td class="num">${v.lots.size}</td></tr>`;
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No data</td></tr>';
+  const byShd={};
+  rr.forEach(r=>{if(!r.shade)return;if(!byShd[r.shade])byShd[r.shade]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set()};byShd[r.shade].rKg+=r.weight;byShd[r.shade].rBags+=r.bags;byShd[r.shade].lots.add(r.lotNo);});
+  dd.forEach(d=>{
+    if(!d.shade)return;
+    if(!byShd[d.shade])byShd[d.shade]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set()};
+    if(d.form==='R'){byShd[d.shade].rKg-=d.weight;byShd[d.shade].rBags-=d.bags;}
+    else{byShd[d.shade].dKg+=d.weight;byShd[d.shade].dBags+=d.bags;}
+  });
+  g('tbByShd').innerHTML=Object.entries(byShd).sort((a,b)=>b[1].rKg-a[1].rKg).map(([k,v])=>{
+    const bKg=Math.max(0,v.rKg-v.dKg);return`<tr><td>${k}</td><td class="num" style="font-weight:700;color:var(--green)">${fmtKg(bKg)}</td><td class="num">${Math.max(0,v.rBags-v.dBags)}</td><td class="num">${v.lots.size}</td></tr>`;
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No data</td></tr>';
+}
+
+// ═══════════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════════
+function openEditModal(type, id) {
+  if (type === 'recv') {
+    const r = recv.find(x => x.id === id);
+    if (!r) return;
+    // Populate company/count/blend selects first
+    fillSel('er_co',   master.companies, '— Select —');
+    fillSel('er_count',master.counts,    '— Select —');
+    fillSel('er_blend',master.blends,    '— Select —');
+    // Fill values
+    g('er_id').value       = r.id;
+    g('er_date').value     = r.date;
+    g('er_challan').value  = r.challan;
+    setSelVal('er_co',    r.company);
+    g('er_lot').value      = r.lotNo;
+    g('er_altlot').value   = r.altLot||'';
+    g('er_shade').value    = r.shade||'';
+    setSelVal('er_count', r.count);
+    g('er_tpi').value      = r.tpi||'';
+    setSelVal('er_blend', r.blend);
+    g('er_bags').value     = r.bags;
+    g('er_weight').value   = r.weight;
+    g('er_rate').value     = r.rate||'';
+    g('er_shortage').value = r.allowedShortage||'';
+    g('er_vehicle').value  = r.vehicle||'';
+    g('er_status').value   = r.status||'Received';
+    g('er_remarks').value  = r.remarks||'';
+    openModal('editRecvModal');
+  } else {
+    const d = disp.find(x => x.id === id);
+    if (!d) return;
+    fillSel('ed_co',   master.companies, '— Select —');
+    fillSel('ed_count',master.counts,    '— Select —');
+    fillSel('ed_blend',master.blends,    '— Select —');
+    g('ed_id').value      = d.id;
+    g('ed_date').value    = d.date;
+    g('ed_challan').value = d.challan;
+    setSelVal('ed_co',    d.company);
+    g('ed_lot').value     = d.lotNo;
+    g('ed_form').value    = d.form||'D';
+    g('ed_shade').value   = d.shade||'';
+    setSelVal('ed_count', d.count);
+    g('ed_tpi').value     = d.tpi||'';
+    setSelVal('ed_blend', d.blend);
+    g('ed_bags').value    = d.bags;
+    g('ed_weight').value  = d.weight;
+    g('ed_rate').value    = d.rate||'';
+    g('ed_plant').value   = d.plant||'';
+    g('ed_vehicle').value = d.vehicle||'';
+    g('ed_remark').value  = d.remark||'';
+    openModal('editDispModal');
+  }
+}
+
+function saveEdit(type) {
+  if (type === 'recv') {
+    const id = g('er_id').value;
+    const idx = recv.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    recv[idx] = {
+      ...recv[idx],
+      date:            g('er_date').value,
+      challan:         g('er_challan').value.trim(),
+      company:         g('er_co').value,
+      lotNo:           g('er_lot').value.trim(),
+      altLot:          g('er_altlot').value.trim(),
+      shade:           g('er_shade').value.trim(),
+      count:           g('er_count').value,
+      tpi:             g('er_tpi').value.trim(),
+      blend:           g('er_blend').value,
+      bags:            parseFloat(g('er_bags').value)||0,
+      weight:          parseFloat(g('er_weight').value)||0,
+      rate:            parseFloat(g('er_rate').value)||0,
+      allowedShortage: parseFloat(g('er_shortage').value)||0,
+      vehicle:         g('er_vehicle').value.trim(),
+      status:          g('er_status').value,
+      remarks:         g('er_remarks').value.trim()
+    };
+    saveLocal(); renderAll();
+    appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','EDIT',`Lot ${recv[idx].lotNo} | ${recv[idx].company}`]);
+    closeModal('editRecvModal');
+    toast('✓ Receipt updated', 'ok');
+  } else {
+    const id = g('ed_id').value;
+    const idx = disp.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    disp[idx] = {
+      ...disp[idx],
+      date:    g('ed_date').value,
+      challan: g('ed_challan').value.trim(),
+      company: g('ed_co').value,
+      lotNo:   g('ed_lot').value.trim(),
+      form:    g('ed_form').value,
+      shade:   g('ed_shade').value.trim(),
+      count:   g('ed_count').value,
+      tpi:     g('ed_tpi').value.trim(),
+      blend:   g('ed_blend').value,
+      bags:    parseFloat(g('ed_bags').value)||0,
+      weight:  parseFloat(g('ed_weight').value)||0,
+      rate:    parseFloat(g('ed_rate').value)||0,
+      plant:   g('ed_plant').value.trim(),
+      vehicle: g('ed_vehicle').value.trim(),
+      remark:  g('ed_remark').value.trim()
+    };
+    saveLocal(); renderAll();
+    appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','EDIT',`Lot ${disp[idx].lotNo} | ${disp[idx].company}`]);
+    closeModal('editDispModal');
+    toast('✓ Dispatch entry updated', 'ok');
+  }
+}
+// ═══════════════════════════════════════════════
+function populateAll() {
+  // Merge master data + data from receipts/dispatch for TPI, Shade, Lot
+  const allR=[...recv,...disp];
+  const tpis=uniq(allR.map(r=>r.tpi));
+  const shds=uniq(allR.map(r=>r.shade));
+  const lots=uniq(recv.map(r=>r.lotNo));
+
+  // Receive form
+  fillSel('r_co', master.companies, '— Select Company —');
+  fillSel('r_count', master.counts, '— Select Count —');
+  fillSel('r_blend', master.blends, '— Select Blend —');
+  // Dispatch form
+  fillSel('d_co', master.companies, '— Select Company —');
+  fillSel('d_count', master.counts, '— Select Count —');
+  fillSel('d_blend', master.blends, '— Select Blend —');
+  // Lot datalist
+  fillDL('dl_lot', lots);
+  // Shade datalist
+  fillDL('dl_shade', shds); fillDL('dl_shade2', shds);
+  fillDL('dl_tpi', tpis);
+  // Filter dropdowns
+  fillSel('fRCo', master.companies, 'All Companies');
+  fillSel('fDCo', master.companies, 'All Companies');
+  fillSel('fLCo', master.companies, 'All Companies');
+  fillSel('fLCnt', master.counts, 'All Counts');
+  fillSel('fLTpi', tpis, 'All TPI');
+  fillSel('fLShd', shds, 'All Shades');
+  fillSel('df_cnt', master.counts, 'All');
+  fillSel('df_tpi', tpis, 'All');
+  fillSel('df_shd', shds, 'All');
+  fillSel('df_co', master.companies, 'All');
+  fillSel('df_bld', master.blends, 'All');
+}
+
+function uniq(arr){return[...new Set(arr.filter(Boolean))].sort();}
+function fillDL(id, opts){const el=g(id);if(!el)return;el.innerHTML=opts.map(o=>`<option value="${o}">`).join('');}
+function fillSel(id, opts, ph){
+  const el=g(id);if(!el)return;const cur=el.value;
+  el.innerHTML=`<option value="">${ph}</option>`+opts.map(o=>`<option value="${o}"${cur===o?' selected':''}>${o}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function g(id){return document.getElementById(id);}
+function sg(id,v){const el=g(id);if(el)el.textContent=v;}
+function setChip(tab,val,btn){
+  dateF[tab]=val;
+  const bar=btn.closest('.fbar')||btn.parentElement;
+  bar.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(tab==='recv')renderR();else if(tab==='disp')renderD();else buildDash();
+}
+let lotRowCount = 0;
+
+function go(tab){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+  g('p-'+tab).classList.add('active');
+  const idx={recv:0,disp:1,lots:2,dash:3,prod:4}[tab];
+  document.querySelectorAll('.tb')[idx].classList.add('active');
+  if(tab==='lots') buildLots();
+  if(tab==='dash') buildDash();
+  if(tab==='prod' && g('prodTbody').children.length===0) addProdRow();
+  // Auto-add first lot row when opening dispatch tab if empty
+  if(tab==='disp' && g('lotRowsTbody').children.length===0) addLotRow();
+}
+function clearForm(type){
+  const td=today();
+  if(type==='recv'){
+    ['r_challan','r_altlot','r_shade','r_tpi','r_vehicle','r_remarks','r_singleconetip','r_doubleconetip','r_shadecard'].forEach(id=>{const el=g(id);if(el)el.value='';});
+    ['r_bags','r_weight','r_rate','r_shortage','r_papercone'].forEach(id=>{const el=g(id);if(el)el.value=''});
+    g('r_lot').value=''; g('r_co').value=''; g('r_count').value=''; g('r_blend').value='';
+    g('r_status').value='Received'; g('r_date').value=td;
+    const db=g('recvDupBanner'); if(db) db.classList.remove('show');
+    clearRecvPrefill();
+  } else {
+    ['d_challan','d_vehicle','d_plant','d_remark'].forEach(id=>{const el=g(id);if(el){el.value='';el.classList.remove('prefilled');el.style.borderColor='';}});
+    const dr=g('d_rate'); if(dr){dr.value='';dr.classList.remove('prefilled');}
+    const dc=g('d_co'); if(dc) dc.value='';
+    const df=g('d_form'); if(df) df.value='D';
+    const dd=g('d_date'); if(dd) dd.value=td;
+    // Reset challan validation UI
+    const cs=g('challanStatus'); if(cs) cs.textContent='';
+    g('lotRowsTbody').innerHTML='';
+    lotRowCount=0;
+    updateTotals();
+    updateLotRowNumbers();
+  }
+}
+let _delCtx=null;
+function del(type,id){
+  _delCtx={type,id};
+  g('delModal').classList.add('open');
+}
+function confirmDel(){
+  if(!_delCtx)return;
+  if(_delCtx.type==='recv')recv=recv.filter(r=>r.id!==_delCtx.id);
+  else disp=disp.filter(d=>d.id!==_delCtx.id);
+  saveLocal();renderAll();
+  g('delModal').classList.remove('open');
+  _delCtx=null;
+  toast('Entry deleted.','ok');
+}
+function cancelDel(){
+  g('delModal').classList.remove('open');
+  _delCtx=null;
+}
+function openModal(id){
+  g(id).classList.add('open');
+  if(id==='masterModal') renderTagsAll();
+}
+function closeModal(id){g(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('mbg'))e.target.classList.remove('open');});
+function toast(msg,type){
+  const el=g('toast');el.textContent=msg;el.className='show '+(type||'');
+  clearTimeout(window._tT);window._tT=setTimeout(()=>{el.className='';},3400);
+}
+// ═══════════════════════════════════════════════
+// BULK UPLOAD
+// ═══════════════════════════════════════════════
+
+// CSV column definitions
+const BULK_RECV_COLS = [
+  { key:'date',            label:'Date',               required:true,  hint:'YYYY-MM-DD e.g. 2024-03-29' },
+  { key:'challan',         label:'Challan No',         required:true,  hint:'e.g. 862' },
+  { key:'company',         label:'Company',            required:true,  hint:'e.g. BSL' },
+  { key:'lotNo',           label:'Lot No',             required:true,  hint:'e.g. I10138' },
+  { key:'altLot',          label:'Alt Lot No',         required:false, hint:'Optional' },
+  { key:'shade',           label:'Shade/Colour',       required:false, hint:'e.g. 3030069' },
+  { key:'count',           label:'Count',              required:false, hint:'e.g. 1/30 PV' },
+  { key:'tpi',             label:'TPI',                required:false, hint:'e.g. 17' },
+  { key:'blend',           label:'Blend',              required:false, hint:'e.g. PV' },
+  { key:'bags',            label:'No of Bags',         required:true,  hint:'e.g. 64' },
+  { key:'weight',          label:'Weight (kg)',        required:true,  hint:'e.g. 4000.50' },
+  { key:'rate',            label:'JW Rate (Rs/kg)',    required:false, hint:'e.g. 64.00' },
+  { key:'allowedShortage', label:'Allowed Shortage %', required:false, hint:'e.g. 0.5' },
+  { key:'vehicle',         label:'Vehicle No',         required:false, hint:'Optional' },
+  { key:'status',          label:'Status',             required:false, hint:'Received / In Process / Hold' },
+  { key:'remarks',         label:'Remarks',            required:false, hint:'Optional' },
+];
+
+const BULK_DISP_COLS = [
+  { key:'date',    label:'Date',           required:true,  hint:'YYYY-MM-DD e.g. 2024-03-29' },
+  { key:'challan', label:'Challan No',     required:true,  hint:'e.g. 1223' },
+  { key:'company', label:'Company',        required:true,  hint:'e.g. BSL' },
+  { key:'lotNo',   label:'Lot No',         required:true,  hint:'e.g. I10138' },
+  { key:'shade',   label:'Shade/Colour',   required:false, hint:'e.g. 3030069' },
+  { key:'count',   label:'Count',          required:false, hint:'e.g. 2/30 PV' },
+  { key:'tpi',     label:'TPI',            required:false, hint:'e.g. 17' },
+  { key:'blend',   label:'Blend',          required:false, hint:'e.g. PV' },
+  { key:'bags',    label:'No of Bags',     required:true,  hint:'e.g. 15' },
+  { key:'weight',  label:'Weight (kg)',    required:true,  hint:'e.g. 928.00' },
+  { key:'rate',    label:'JW Rate (Rs/kg)',required:false, hint:'e.g. 61.87' },
+  { key:'form',    label:'Form (D/R/S)',   required:false, hint:'D=Doubled, R=Return, S=Sample' },
+  { key:'plant',   label:'Plant',          required:false, hint:'e.g. Plant 1' },
+  { key:'vehicle', label:'Vehicle No',     required:false, hint:'Optional' },
+  { key:'remark',  label:'Remark',         required:false, hint:'Optional' },
+];
+
+let _bulkParsed = { recv: [], disp: [] };
+
+// ── DOWNLOAD TEMPLATE ──
+function downloadTemplate(type) {
+  const cols = type === 'recv' ? BULK_RECV_COLS : BULK_DISP_COLS;
+  const headers = cols.map(c => c.label).join(',');
+  const hints   = cols.map(c => `"${c.hint}"`).join(',');
+  const sample  = type === 'recv'
+    ? `2024-03-29,862,BSL,I10138,,3030069,1/30 PV,17,PV,64,4000.50,64.00,0.5,,Received,`
+    : `2024-03-29,1223,BSL,I10138,3030069,2/30 PV,17,PV,15,928.00,61.87,D,Plant 1,,`;
+  const csv = `${headers}\n${hints}\n${sample}\n`;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `yarntrack_${type}_template.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── PARSE CSV FILE ──
+function parseBulkFile(type) {
+  const fileInput = g(`bulk${cap(type)}File`);
+  const file = fileInput.files[0];
+  if (!file) return;
+  g(`bulk${cap(type)}FileInfo`).textContent = `Reading: ${file.name}…`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = parseCSV(text);
+    if (rows.length < 2) {
+      g(`bulk${cap(type)}FileInfo`).textContent = '✗ File is empty or invalid';
+      return;
+    }
+    // First row = headers, skip hint row if present
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const cols    = type === 'recv' ? BULK_RECV_COLS : BULK_DISP_COLS;
+
+    // Map header names to column keys (flexible — handles variations)
+    const colMap = {};
+    cols.forEach((col, i) => {
+      // Try exact label match first
+      let idx = headers.findIndex(h =>
+        h === col.label.toLowerCase() ||
+        h === col.key.toLowerCase() ||
+        h.replace(/[^a-z0-9]/g,'') === col.label.toLowerCase().replace(/[^a-z0-9]/g,'')
+      );
+      if (idx >= 0) colMap[col.key] = idx;
+      else colMap[col.key] = i; // fallback: use column position
+    });
+
+    // Skip hint row (if 2nd row looks like hints)
+    const dataStartRow = rows[1] && rows[1][0] && rows[1][0].toLowerCase().includes('yyyy') ? 2 : 1;
+    const dataRows = rows.slice(dataStartRow).filter(r => r.some(c => c.trim()));
+
+    // Parse each row
+    const parsed = [], errors = [];
+    dataRows.forEach((row, ri) => {
+      const entry = {};
+      cols.forEach(col => {
+        const val = (row[colMap[col.key]] || '').trim();
+        entry[col.key] = val;
+      });
+      // Validate required fields
+      const missing = cols.filter(c => c.required && !entry[c.key]);
+      if (missing.length) {
+        errors.push(`Row ${ri+2}: Missing required fields — ${missing.map(c=>c.label).join(', ')}`);
+        entry._error = true;
+      }
+      // Validate date format
+      if (entry.date && !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) {
+        // Try to fix common formats: DD/MM/YYYY, DD-MM-YYYY
+        const parts = entry.date.split(/[\/\-]/);
+        if (parts.length === 3) {
+          if (parts[0].length === 4) entry.date = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+          else entry.date = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+        }
+      }
+      // Defaults
+      if (!entry.status) entry.status = 'Received';
+      if (!entry.form)   entry.form   = 'D';
+      parsed.push(entry);
+    });
+
+    _bulkParsed[type] = parsed;
+    const validCount = parsed.filter(r=>!r._error).length;
+    g(`bulk${cap(type)}FileInfo`).textContent = `✓ ${file.name} — ${parsed.length} rows found`;
+    showBulkPreview(type, parsed, errors, validCount);
+  };
+  reader.readAsText(file);
+}
+
+// ── PREVIEW TABLE ──
+function showBulkPreview(type, parsed, errors, validCount) {
+  const cols = type === 'recv' ? BULK_RECV_COLS : BULK_DISP_COLS;
+  const wrap = g(`bulk${cap(type)}PreviewWrap`);
+  wrap.style.display = 'block';
+
+  // Summary
+  g(`bulk${cap(type)}Summary`).innerHTML =
+    `<strong style="color:var(--green)">${validCount} valid rows</strong>${errors.length?` &nbsp;·&nbsp; <strong style="color:var(--red)">${errors.length} errors</strong>`:''}`;
+
+  // Errors
+  const errEl = g(`bulk${cap(type)}Errors`);
+  if (errors.length) {
+    errEl.innerHTML = errors.slice(0,5).map(e =>
+      `<div style="font-size:11px;color:var(--red);padding:3px 0;">⚠ ${e}</div>`
+    ).join('') + (errors.length>5?`<div style="font-size:11px;color:var(--text3);">…and ${errors.length-5} more errors</div>`:'');
+  } else errEl.innerHTML = '';
+
+  // Headers
+  const thead = g(`bulk${cap(type)}Thead`);
+  thead.innerHTML = `<th style="background:var(--surf2);color:var(--text3);font-size:10px;padding:8px 10px;">#</th>` +
+    cols.map(c => `<th style="background:var(--surf2);color:var(--text3);font-size:10px;padding:8px 10px;white-space:nowrap;">${c.label}${c.required?'*':''}</th>`).join('') +
+    `<th style="background:var(--surf2);color:var(--text3);font-size:10px;padding:8px 10px;"></th>`;
+
+  // Rows
+  const tbody = g(`bulk${cap(type)}Tbody`);
+  tbody.innerHTML = parsed.map((row, i) => {
+    const rowStyle = row._error ? 'background:rgba(224,85,85,.07);' : '';
+    return `<tr style="${rowStyle}">
+      <td style="padding:6px 10px;font-size:11px;color:var(--text3);">${i+1}</td>
+      ${cols.map(c => `<td style="padding:6px 10px;font-size:11px;white-space:nowrap;${!row[c.key]&&c.required?'color:var(--red);':''}">${row[c.key]||'—'}</td>`).join('')}
+      <td style="padding:6px 10px;">${row._error?'<span style="color:var(--red);font-size:10px;">⚠ Error</span>':'<span style="color:var(--green);font-size:10px;">✓</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  // Show/hide save button
+  const btn = g(`btnBulk${cap(type)}Save`);
+  btn.style.display = validCount > 0 ? '' : 'none';
+  btn.textContent   = `✓ Save ${validCount} Valid Entr${validCount===1?'y':'ies'}`;
+}
+
+// ── SAVE BULK ──
+async function saveBulk(type) {
+  const cols  = type === 'recv' ? BULK_RECV_COLS : BULK_DISP_COLS;
+  const valid = _bulkParsed[type].filter(r => !r._error);
+  if (!valid.length) return;
+
+  const btn    = g(`btnBulk${cap(type)}Save`);
+  const prog   = g(`bulk${cap(type)}Progress`);
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  prog.style.display = 'block';
+
+  let saved = 0, failed = 0;
+  const ts = new Date().toISOString();
+
+  for (const row of valid) {
+    const id = (type==='recv'?'R':'D') + Date.now() + '_' + Math.random().toString(36).slice(2,5);
+    if (type === 'recv') {
+      const e = {
+        id, date:row.date, challan:row.challan, company:row.company,
+        lotNo:row.lotNo, altLot:row.altLot||'', shade:row.shade||'',
+        count:row.count||'', tpi:row.tpi||'', blend:row.blend||'',
+        bags:+row.bags||0, weight:+row.weight||0, rate:+row.rate||0,
+        allowedShortage:+row.allowedShortage||0, vehicle:row.vehicle||'',
+        status:row.status||'Received', remarks:row.remarks||''
+      };
+      recv.push(e);
+      const sheetRow = [e.id,e.date,e.challan,e.company,e.lotNo,e.altLot,e.shade,e.count,
+        e.tpi,e.blend,e.bags,e.weight,e.rate,e.vehicle,e.status,e.remarks,ts,e.allowedShortage];
+      const ok = await appendRow('Receipts', sheetRow);
+      ok ? saved++ : failed++;
+    } else {
+      const e = {
+        id, date:row.date, challan:row.challan, company:row.company,
+        lotNo:row.lotNo, shade:row.shade||'', count:row.count||'',
+        tpi:row.tpi||'', blend:row.blend||'', bags:+row.bags||0,
+        weight:+row.weight||0, rate:+row.rate||0, form:row.form||'D',
+        plant:row.plant||'', vehicle:row.vehicle||'', remark:row.remark||''
+      };
+      disp.push(e);
+      const sheetRow = [e.id,e.date,e.challan,e.company,e.lotNo,e.shade,e.count,
+        e.tpi,e.blend,e.bags,e.weight,e.rate,e.form,e.plant,e.vehicle,e.remark,ts];
+      const ok = await appendRow('Dispatch', sheetRow);
+      ok ? saved++ : failed++;
+    }
+    prog.textContent = `Saving… ${saved+failed}/${valid.length}`;
+    await new Promise(r => setTimeout(r, 80)); // small delay to avoid rate limits
+  }
+
+  await appendRow('ChangeHistory', [ts, type==='recv'?'Receipts':'Dispatch', 'BULK-UPLOAD',
+    `${valid.length} rows uploaded`]);
+
+  saveLocal(); renderAll();
+  btn.disabled = false;
+  prog.style.display = 'none';
+  closeModal(`bulk${cap(type)}Modal`);
+  resetBulk(type);
+  toast(`✓ Bulk upload complete — ${saved} saved${failed?`, ${failed} failed (no Google connection)`:''}`, 'ok');
+}
+
+function resetBulk(type) {
+  _bulkParsed[type] = [];
+  const fi = g(`bulk${cap(type)}File`); if(fi) fi.value='';
+  const info = g(`bulk${cap(type)}FileInfo`); if(info) info.textContent='';
+  const wrap = g(`bulk${cap(type)}PreviewWrap`); if(wrap) wrap.style.display='none';
+  const btn  = g(`btnBulk${cap(type)}Save`); if(btn) btn.style.display='none';
+  const prog = g(`bulk${cap(type)}Progress`); if(prog) prog.style.display='none';
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── CSV PARSER (handles quoted fields with commas) ──
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row = [], re = /("([^"]*)"|([^,]*)),?/g;
+    let m;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index === re.lastIndex) { re.lastIndex++; break; }
+      row.push((m[2] !== undefined ? m[2] : m[3] || '').trim());
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════
+// PRODUCTION CALCULATOR
+// ═══════════════════════════════════════════════
+let prodRowCount = 0;
+let prodConfigs  = JSON.parse(localStorage.getItem('yt2_prod_configs')||'[]');
+
+function addProdRow(prefill) {
+  prodRowCount++;
+  const idx = prodRowCount;
+  const tr  = document.createElement('tr');
+  tr.id = `prodrow_${idx}`;
+  tr.innerHTML = `
+    <td style="padding:8px 13px;color:var(--text3);font-weight:600;font-size:12px;">${idx}</td>
+    <td style="padding:6px 10px;">
+      <input type="text" id="pr_label_${idx}" value="${prefill?.label||''}"
+        placeholder="e.g. Machine 1" style="min-width:120px;"
+        oninput="calcProdRow(${idx})">
+    </td>
+    <td style="padding:6px 10px;">
+      <input type="number" id="pr_rpm_${idx}" value="${prefill?.rpm||''}"
+        placeholder="e.g. 8000" min="0" step="1" style="min-width:90px;text-align:right;"
+        oninput="calcProdRow(${idx})">
+    </td>
+    <td style="padding:6px 10px;">
+      <input type="number" id="pr_count_${idx}" value="${prefill?.count||''}"
+        placeholder="e.g. 30" min="0" step="0.1" style="min-width:90px;text-align:right;"
+        oninput="calcProdRow(${idx})">
+    </td>
+    <td style="padding:6px 10px;">
+      <input type="number" id="pr_tpi_${idx}" value="${prefill?.tpi||''}"
+        placeholder="e.g. 17" min="0" step="0.1" style="min-width:90px;text-align:right;"
+        oninput="calcProdRow(${idx})">
+    </td>
+    <td class="num" id="pr_a_${idx}" style="padding:10px 13px;font-weight:700;color:var(--amber);background:rgba(232,160,66,.04);font-size:13px;">—</td>
+    <td class="num" id="pr_b_${idx}" style="padding:10px 13px;font-weight:700;color:var(--green);background:rgba(92,184,122,.04);font-size:13px;">—</td>
+    <td class="num" id="pr_c_${idx}" style="padding:10px 13px;font-weight:700;color:var(--blue);background:rgba(91,155,213,.04);font-size:13px;">—</td>
+    <td style="padding:6px 10px;">
+      <button class="btn btn-ghost btn-sm" onclick="removeProdRow(${idx})"
+        style="color:var(--red);border-color:var(--red-dim);">🗑</button>
+    </td>
+  `;
+  g('prodTbody').appendChild(tr);
+  g('emProd').style.display = 'none';
+  g('prodSavedWrap').style.display = '';
+  updateProdRowNumbers();
+
+  // If prefill values, calculate immediately
+  if (prefill?.rpm && prefill?.count && prefill?.tpi) calcProdRow(idx);
+}
+
+function removeProdRow(idx) {
+  const tr = g(`prodrow_${idx}`);
+  if (tr) tr.remove();
+  updateProdRowNumbers();
+  calcProdTotals();
+  const rows = g('prodTbody').querySelectorAll('tr');
+  if (!rows.length) {
+    g('emProd').style.display = '';
+    g('prodTotalsRow').style.display = 'none';
+    g('prodSavedWrap').style.display = 'none';
+  }
+}
+
+function updateProdRowNumbers() {
+  g('prodTbody').querySelectorAll('tr').forEach((tr,i) => {
+    const first = tr.querySelector('td:first-child');
+    if (first) first.textContent = i+1;
+  });
+}
+
+function calcProdRow(idx) {
+  const rpm   = parseFloat(g(`pr_rpm_${idx}`)?.value)   || 0;
+  const count = parseFloat(g(`pr_count_${idx}`)?.value) || 0;
+  const tpi   = parseFloat(g(`pr_tpi_${idx}`)?.value)   || 0;
+
+  const aEl = g(`pr_a_${idx}`);
+  const bEl = g(`pr_b_${idx}`);
+  const cEl = g(`pr_c_${idx}`);
+
+  if (!rpm || !count || !tpi) {
+    if(aEl) aEl.textContent = '—';
+    if(bEl) bEl.textContent = '—';
+    if(cEl) cEl.textContent = '—';
+    calcProdTotals();
+    return;
+  }
+
+  // A = Per drum, 12 hours
+  // A = (((RPM × 2.077) / (TPI × (Count/2))) / 8 / 144) * 12
+  const A = ((rpm * 2.077) / (tpi * (count / 2))) / 8 / 144 * 12;
+
+  // B = Per machine, 12 hours = A × 156 drums
+  const B = A * 156;
+
+  // C = Per machine, 24 hours = B × 2
+  const C = B * 2;
+
+  if(aEl) aEl.textContent = A.toFixed(4) + ' kg';
+  if(bEl) bEl.textContent = B.toFixed(3) + ' kg';
+  if(cEl) cEl.textContent = C.toFixed(3) + ' kg';
+
+  calcProdTotals();
+}
+
+function calcProdTotals() {
+  const rows = g('prodTbody').querySelectorAll('tr');
+  if (!rows.length) { g('prodTotalsRow').style.display='none'; return; }
+
+  let totA=0, totB=0, totC=0, anyCalc=false;
+  rows.forEach(tr => {
+    const id  = tr.id.replace('prodrow_','');
+    const aEl = g(`pr_a_${id}`);
+    const bEl = g(`pr_b_${id}`);
+    const cEl = g(`pr_c_${id}`);
+    const aV  = aEl ? parseFloat(aEl.textContent) : 0;
+    const bV  = bEl ? parseFloat(bEl.textContent) : 0;
+    const cV  = cEl ? parseFloat(cEl.textContent) : 0;
+    if (!isNaN(aV) && aV > 0) { totA+=aV; totB+=bV; totC+=cV; anyCalc=true; }
+  });
+
+  if (anyCalc && rows.length > 1) {
+    g('prodTotalsRow').style.display='';
+    g('prodTotA').textContent = totA.toFixed(4) + ' kg';
+    g('prodTotB').textContent = totB.toFixed(3) + ' kg';
+    g('prodTotC').textContent = totC.toFixed(3) + ' kg';
+  } else {
+    g('prodTotalsRow').style.display='none';
+  }
+}
+
+// ── SAVE / LOAD CONFIGURATIONS ──
+function saveProdConfig() {
+  const rows   = g('prodTbody').querySelectorAll('tr');
+  if (!rows.length) { toast('No machines to save','err'); return; }
+  const name   = prompt('Name for this configuration (e.g. "Night Shift — BSL 30s"):');
+  if (!name) return;
+  const machines = [];
+  rows.forEach(tr => {
+    const id = tr.id.replace('prodrow_','');
+    machines.push({
+      label: g(`pr_label_${id}`)?.value||'',
+      rpm:   g(`pr_rpm_${id}`)?.value||'',
+      count: g(`pr_count_${id}`)?.value||'',
+      tpi:   g(`pr_tpi_${id}`)?.value||''
+    });
+  });
+  prodConfigs.push({ name, machines, savedAt: new Date().toLocaleDateString('en-IN') });
+  localStorage.setItem('yt2_prod_configs', JSON.stringify(prodConfigs));
+  renderProdConfigs();
+  toast(`✓ Saved as "${name}"`, 'ok');
+}
+
+function loadProdConfig(idx) {
+  const cfg = prodConfigs[idx];
+  if (!cfg) return;
+  // Clear existing rows
+  g('prodTbody').innerHTML = '';
+  prodRowCount = 0;
+  // Add rows with prefilled values
+  cfg.machines.forEach(m => addProdRow(m));
+  toast(`✓ Loaded "${cfg.name}"`, 'ok');
+}
+
+function deleteProdConfig(idx) {
+  prodConfigs.splice(idx, 1);
+  localStorage.setItem('yt2_prod_configs', JSON.stringify(prodConfigs));
+  renderProdConfigs();
+}
+
+function renderProdConfigs() {
+  const list = g('prodSavedList');
+  if (!prodConfigs.length) { list.innerHTML='<span style="font-size:11px;color:var(--text3);">No saved configurations yet.</span>'; return; }
+  list.innerHTML = prodConfigs.map((c,i) => `
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${c.name}</div>
+        <div style="font-size:10px;color:var(--text3);">${c.machines.length} machine${c.machines.length>1?'s':''} · ${c.savedAt}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadProdConfig(${i})" style="color:var(--green);border-color:var(--green-dim);">Load</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteProdConfig(${i})" style="color:var(--red);border-color:var(--red-dim);font-size:12px;">🗑</button>
+    </div>`).join('');
+}
+
+// Init saved configs on load
+window.addEventListener('DOMContentLoaded', () => {
+  // (existing DOMContentLoaded fires first — this piggybacks)
+  setTimeout(renderProdConfigs, 100);
+});
+
+// ═══════════════════════════════════════════════
+// CHEESE WINDING LENGTH CALCULATOR
+// Formula: A = C × 1.697 × (B / 2)
+// B = Count, C = Weight without cheese (kg), A = Length (metres)
+// ═══════════════════════════════════════════════
+function calcCheese() {
+  const B = parseFloat(g('cw_count')?.value)  || 0;
+  const Cgrams = parseFloat(g('cw_weight')?.value) || 0;
+  const el = g('cw_result');
+  if (!el) return;
+  if (!B || !Cgrams) { el.textContent = '—'; return; }
+  const C = Cgrams / 1000; // convert grams to kg
+  const A = C * 1.697 * (B / 2);
+  el.textContent = A.toFixed(2) + ' m';
+}
+
+let cheeseRowCount = 0;
+
+function addCheeseRow(prefill) {
+  cheeseRowCount++;
+  const idx = cheeseRowCount;
+  const tr  = document.createElement('tr');
+  tr.id = `cheeserow_${idx}`;
+  tr.innerHTML = `
+    <td style="padding:8px 13px;color:var(--text3);font-weight:600;font-size:12px;">${idx}</td>
+    <td style="padding:6px 10px;">
+      <input type="text" id="cr_label_${idx}" value="${prefill?.label||''}" placeholder="e.g. Lot I10138" style="min-width:120px;">
+    </td>
+    <td style="padding:6px 10px;">
+      <input type="number" id="cr_count_${idx}" value="${prefill?.count||''}"
+        placeholder="e.g. 30" min="0" step="0.1" style="min-width:90px;text-align:right;"
+        oninput="calcCheeseRow(${idx})">
+    </td>
+    <td style="padding:6px 10px;">
+      <input type="number" id="cr_weight_${idx}" value="${prefill?.weight||''}"
+        placeholder="e.g. 1250" min="0" step="1" style="min-width:110px;text-align:right;"
+        oninput="calcCheeseRow(${idx})">
+    </td>
+    <td class="num" id="cr_a_${idx}" style="padding:10px 13px;font-weight:700;color:var(--purple);background:rgba(164,127,208,.04);font-size:13px;">—</td>
+    <td style="padding:6px 10px;">
+      <button class="btn btn-ghost btn-sm" onclick="removeCheeseRow(${idx})" style="color:var(--red);border-color:var(--red-dim);">🗑</button>
+    </td>
+  `;
+  g('cheeseTbody').appendChild(tr);
+  const em = g('emCheese'); if(em) em.style.display = 'none';
+  updateCheeseRowNumbers();
+  if (prefill?.count && prefill?.weight) calcCheeseRow(idx);
+}
+
+function removeCheeseRow(idx) {
+  const tr = g(`cheeserow_${idx}`); if(tr) tr.remove();
+  updateCheeseRowNumbers();
+  if (!g('cheeseTbody').querySelectorAll('tr').length) {
+    const em = g('emCheese'); if(em) em.style.display = '';
+  }
+}
+
+function updateCheeseRowNumbers() {
+  g('cheeseTbody').querySelectorAll('tr').forEach((tr,i) => {
+    const first = tr.querySelector('td:first-child');
+    if(first) first.textContent = i+1;
+  });
+}
+
+function calcCheeseRow(idx) {
+  const B = parseFloat(g(`cr_count_${idx}`)?.value)  || 0;
+  const Cgrams = parseFloat(g(`cr_weight_${idx}`)?.value) || 0;
+  const el = g(`cr_a_${idx}`);
+  if(!B || !Cgrams) { if(el) el.textContent='—'; return; }
+  const C = Cgrams / 1000; // convert grams to kg
+  const A = C * 1.697 * (B / 2);
+  if(el) el.textContent = A.toFixed(2) + ' m';
+}
+
+// ═══════════════════════════════════════════════
+// EXCEL DOWNLOAD (CSV format — opens in Excel)
+// ═══════════════════════════════════════════════
+function downloadExcel(tab) {
+  let headers = [], rows = [], filename = '';
+
+  if (tab === 'recv') {
+    filename = `Receipts_${today()}.csv`;
+    headers = ['#','Date','Challan No','Company','Lot No','Double Lot No','Shade','Count','TPI','Blend',
+      'Single Cone Tip','Double Cone Tip','Shade Card No','Paper Cone','Bags','Weight (kg)',
+      'JW Rate (Rs/kg)','Allowed Shortage %','Vehicle No','Status','Remarks'];
+    let data = [...recv];
+    data = byDate(data, 'recv');
+    const co = g('fRCo').value, st = g('fRSt').value;
+    const srch = g('srchR').value.toLowerCase();
+    if(co) data = data.filter(r=>r.company===co);
+    if(st) data = data.filter(r=>r.status===st);
+    if(srch) data = data.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
+    data.sort((a,b)=>b.date.localeCompare(a.date));
+    rows = data.map((r,i) => [
+      i+1, r.date, r.challan, r.company, r.lotNo, r.altLot||'', r.shade||'', r.count||'',
+      r.tpi||'', r.blend||'', r.singleConeTip||'', r.doubleConeTip||'', r.shadeCard||'',
+      r.paperCone||0, r.bags, r.weight, r.rate||'', r.allowedShortage||'', r.vehicle||'', r.status, r.remarks||''
+    ]);
+
+  } else if (tab === 'disp') {
+    filename = `Dispatch_${today()}.csv`;
+    headers = ['#','Date','Challan No','Company','Lot No','Shade','Count','TPI','Blend',
+      'Bags','Weight (kg)','JW Rate (Rs/kg)','Form','Plant','Vehicle No','Remark'];
+    let data = [...disp];
+    data = byDate(data, 'disp');
+    const co = g('fDCo').value, fm = g('fDForm').value;
+    const srch = g('srchD').value.toLowerCase();
+    if(co) data = data.filter(r=>r.company===co);
+    if(fm) data = data.filter(r=>r.form===fm);
+    if(srch) data = data.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
+    data.sort((a,b)=>b.date.localeCompare(a.date));
+    rows = data.map((r,i) => [
+      i+1, r.date, r.challan, r.company, r.lotNo, r.shade||'', r.count||'',
+      r.tpi||'', r.blend||'', r.bags, r.weight, r.rate||'', r.form||'D',
+      r.plant||'', r.vehicle||'', r.remark||''
+    ]);
+
+  } else if (tab === 'lots') {
+    filename = `LotStatus_${today()}.csv`;
+    headers = ['Lot No','Double Lot No','Company','Shade','Count','TPI','Blend','Double Cone Tip',
+      'Recv Date','Ageing (days)','Recv (kg)','Return (kg)','Net Recv (kg)','Disp (kg)','Balance (kg)',
+      'Recv Bags','Disp Bags','Bal Bags','Shortage %','Allowed %','Pending Qty (kg)','Status'];
+    // Get rendered lot rows from the DOM (already filtered)
+    const tbRows = g('tbL').querySelectorAll('tr');
+    rows = [...tbRows].map(tr => {
+      const tds = [...tr.querySelectorAll('td')];
+      if (!tds.length) return null;
+      return [
+        tds[0]?.textContent||'',  // lot no
+        tds[1]?.textContent||'',  // double lot
+        tds[2]?.textContent||'',  // company
+        tds[3]?.textContent||'',  // shade
+        tds[4]?.textContent||'',  // count
+        tds[5]?.textContent||'',  // tpi
+        tds[6]?.textContent||'',  // blend
+        tds[7]?.textContent||'',  // double cone tip
+        tds[8]?.textContent||'',  // recv date
+        tds[9]?.textContent?.replace(' d','')||'',   // ageing
+        tds[10]?.textContent||'', // recv kg
+        tds[11]?.textContent||'', // return kg
+        tds[12]?.textContent||'', // net recv kg
+        tds[13]?.textContent||'', // disp kg
+        tds[14]?.textContent||'', // balance kg
+        tds[15]?.textContent||'', // recv bags
+        tds[16]?.textContent||'', // disp bags
+        tds[17]?.textContent||'', // bal bags
+        tds[18]?.textContent||'', // shortage%
+        tds[19]?.textContent||'', // allowed%
+        tds[20]?.textContent||'', // pending qty
+        tds[21]?.textContent||''  // status
+      ];
+    }).filter(Boolean);
+  }
+
+  // Build CSV string
+  const esc = v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
+  };
+  const csv = [headers, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+  const BOM = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  toast(`✓ Downloaded ${filename}`, 'ok');
+}
+
+// ═══════════════════════════════════════════════
+function printTab(tab) {
+  const unitName = cfg.name || g('unitName').textContent || 'Yarn Twisting Unit';
+  const now = new Date();
+  const printDate = now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const printTime = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+  let html = '', title = '', sub = '';
+
+  if (tab === 'recv') {
+    title = 'Order Receive Report';
+    const co = g('fRCo').value, st = g('fRSt').value;
+    sub = [co||'All Companies', st||'All Status', 'Filter: '+chipLabel('recv')].join(' · ');
+    let rows = [...recv];
+    rows = byDate(rows,'recv');
+    if(co) rows = rows.filter(r=>r.company===co);
+    if(st) rows = rows.filter(r=>r.status===st);
+    const srch = g('srchR').value.toLowerCase();
+    if(srch) rows = rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
+    rows.sort((a,b)=>b.date.localeCompare(a.date));
+    const totalBags = rows.reduce((s,r)=>s+r.bags,0);
+    const totalWt   = rows.reduce((s,r)=>s+r.weight,0);
+    html = `
+      <div class="print-summary-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="print-kpi"><div class="print-kpi-label">Total Entries</div><div class="print-kpi-val">${rows.length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Bags</div><div class="print-kpi-val">${totalBags}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Weight (kg)</div><div class="print-kpi-val">${fmtKg(totalWt)}</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th><th>Alt.Lot</th>
+          <th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
+          <th class="r">Bags</th><th class="r">Weight (kg)</th><th class="r">JW Rate ₹</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r,i)=>`<tr>
+            <td>${i+1}</td><td>${r.date}</td><td>${r.challan}</td><td><strong>${r.company}</strong></td>
+            <td><strong>${r.lotNo}</strong></td><td>${r.altLot||'—'}</td><td>${r.shade||'—'}</td>
+            <td>${r.count||'—'}</td><td>${r.tpi||'—'}</td><td>${r.blend||'—'}</td>
+            <td class="r">${r.bags}</td><td class="r">${fmtKg(r.weight)}</td>
+            <td class="r">${r.rate?'₹'+r.rate:'—'}</td>
+            <td><span class="tag-${r.status==='Received'?'recv':r.status==='Hold'?'hold':'disp'}">${r.status}</span></td>
+          </tr>`).join('')}
+          <tr class="print-count-row">
+            <td colspan="10" style="text-align:right;padding-right:12px;">TOTAL</td>
+            <td class="r">${totalBags}</td><td class="r">${fmtKg(totalWt)}</td><td colspan="2"></td>
+          </tr>
+        </tbody>
+      </table>`;
+
+  } else if (tab === 'disp') {
+    title = 'Dispatch Report';
+    const co = g('fDCo').value, fm = g('fDForm').value;
+    sub = [co||'All Companies', fm||'All Forms', 'Filter: '+chipLabel('disp')].join(' · ');
+    let rows = [...disp];
+    rows = byDate(rows,'disp');
+    if(co) rows = rows.filter(r=>r.company===co);
+    if(fm) rows = rows.filter(r=>r.form===fm);
+    const srch = g('srchD').value.toLowerCase();
+    if(srch) rows = rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
+    rows.sort((a,b)=>b.date.localeCompare(a.date));
+    const totalBags = rows.reduce((s,r)=>s+r.bags,0);
+    const totalWt   = rows.reduce((s,r)=>s+r.weight,0);
+    // Group by challan
+    const challans = {};
+    rows.forEach(r=>{ if(!challans[r.challan])challans[r.challan]={rows:[],co:r.company,date:r.date}; challans[r.challan].rows.push(r); });
+    html = `
+      <div class="print-summary-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="print-kpi"><div class="print-kpi-label">Total Entries</div><div class="print-kpi-val">${rows.length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Challans</div><div class="print-kpi-val">${Object.keys(challans).length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Bags</div><div class="print-kpi-val">${totalBags}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Weight (kg)</div><div class="print-kpi-val">${fmtKg(totalWt)}</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th>
+          <th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
+          <th class="r">Bags</th><th class="r">Weight (kg)</th><th class="r">JW Rate ₹</th><th>Form</th><th>Plant</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r,i)=>`<tr>
+            <td>${i+1}</td><td>${r.date}</td><td><strong>${r.challan}</strong></td><td><strong>${r.company}</strong></td>
+            <td><strong>${r.lotNo}</strong></td><td>${r.shade||'—'}</td><td>${r.count||'—'}</td>
+            <td>${r.tpi||'—'}</td><td>${r.blend||'—'}</td>
+            <td class="r">${r.bags}</td><td class="r">${fmtKg(r.weight)}</td>
+            <td class="r">${r.rate?'₹'+r.rate:'—'}</td>
+            <td><span class="tag-${r.form==='R'?'hold':r.form==='D'?'disp':'recv'}">${r.form}</span></td>
+            <td>${r.plant||'—'}</td>
+          </tr>`).join('')}
+          <tr class="print-count-row">
+            <td colspan="9" style="text-align:right;padding-right:12px;">TOTAL</td>
+            <td class="r">${totalBags}</td><td class="r">${fmtKg(totalWt)}</td><td colspan="3"></td>
+          </tr>
+        </tbody>
+      </table>`;
+
+  } else if (tab === 'lots') {
+    title = 'Lot Status Report';
+    const co=g('fLCo').value, st=g('fLSt').value, cnt=g('fLCnt').value, shd=g('fLShd').value;
+    sub = [co||'All Companies', st||'All Status', cnt||'All Counts', shd||'All Shades'].filter(x=>x&&!x.startsWith('All')).join(' · ') || 'All Lots';
+    // Get the already-rendered lot rows from the table
+    const tbRows = g('tbL').querySelectorAll('tr');
+    const totalLots = tbRows.length;
+    let totRecv=0,totDisp=0,totBal=0;
+    tbRows.forEach(tr=>{
+      const tds=[...tr.querySelectorAll('td')];
+      if(tds.length>=13){totRecv+=parseFloat(tds[8].textContent)||0;totDisp+=parseFloat(tds[11].textContent)||0;totBal+=parseFloat(tds[12].textContent)||0;}
+    });
+    html = `
+      <div class="print-summary-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="print-kpi"><div class="print-kpi-label">Total Lots</div><div class="print-kpi-val">${totalLots}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Recv (kg)</div><div class="print-kpi-val">${fmtKg(totRecv)}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Disp (kg)</div><div class="print-kpi-val">${fmtKg(totDisp)}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Balance (kg)</div><div class="print-kpi-val">${fmtKg(totBal)}</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>Lot No.</th><th>Alt.Lot</th><th>Company</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
+          <th>Recv Date</th><th class="r">Recv(kg)</th><th class="r">Return(kg)</th>
+          <th class="r">NetRecv(kg)</th><th class="r">Disp(kg)</th><th class="r">Bal(kg)</th>
+          <th class="r">Bags</th><th class="r">Shortage%</th><th class="r">Allowed%</th>
+          <th class="r">Pending(kg)</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          ${[...tbRows].map(tr=>{
+            const tds=[...tr.querySelectorAll('td')];
+            if(!tds.length) return '';
+            const st=tds[20]?.textContent?.trim()||'';
+            const stCls=st==='Completed'||st==='Fully Dispatched'?'tag-done':st==='Received'?'tag-recv':st==='Hold'||st==='Returned'?'tag-hold':'tag-disp';
+            return `<tr>
+              <td><strong>${tds[0]?.textContent||''}</strong></td>
+              <td>${tds[1]?.textContent||''}</td><td><strong>${tds[2]?.textContent||''}</strong></td>
+              <td>${tds[3]?.textContent||''}</td><td>${tds[4]?.textContent||''}</td>
+              <td>${tds[5]?.textContent||''}</td><td>${tds[6]?.textContent||''}</td>
+              <td>${tds[7]?.textContent||''}</td>
+              <td class="r">${tds[8]?.textContent||''}</td><td class="r">${tds[9]?.textContent||''}</td>
+              <td class="r">${tds[10]?.textContent||''}</td><td class="r">${tds[11]?.textContent||''}</td>
+              <td class="r"><strong>${tds[12]?.textContent||''}</strong></td>
+              <td class="r">${tds[13]?.textContent||''}</td>
+              <td class="r">${tds[16]?.textContent||''}</td><td class="r">${tds[17]?.textContent||''}</td>
+              <td class="r">${tds[18]?.textContent||''}</td>
+              <td><span class="${stCls}">${st}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+
+  } else if (tab === 'dash') {
+    title = 'Stock Dashboard Report';
+    sub = 'Summary across all filters';
+    const kRecv=g('k_recv')?.textContent||'—', kDisp=g('k_disp')?.textContent||'—',
+          kStk=g('k_stk')?.textContent||'—', kLots=g('k_lots')?.textContent||'—',
+          kPend=g('k_pend')?.textContent||'—';
+    const kRecvS=g('k_recv_s')?.textContent||'', kDispS=g('k_disp_s')?.textContent||'',
+          kStkS=g('k_stk_s')?.textContent||'';
+    // Company table
+    const coRows=[...g('tbCo').querySelectorAll('tr')];
+    const cntRows=[...g('tbByCnt').querySelectorAll('tr')];
+    const shdRows=[...g('tbByShd').querySelectorAll('tr')];
+    html = `
+      <div class="print-summary-grid">
+        <div class="print-kpi"><div class="print-kpi-label">Total Received (kg)</div><div class="print-kpi-val">${kRecv}</div><div class="print-kpi-sub">${kRecvS}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Dispatched (kg)</div><div class="print-kpi-val">${kDisp}</div><div class="print-kpi-sub">${kDispS}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Current Stock (kg)</div><div class="print-kpi-val">${kStk}</div><div class="print-kpi-sub">${kStkS}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Active Lots</div><div class="print-kpi-val">${kLots}</div><div class="print-kpi-sub">Pending: ${kPend} kg</div></div>
+      </div>
+      <div class="print-section-title">Company-wise Summary</div>
+      <table class="print-table">
+        <thead><tr><th>Company</th><th class="r">Recv(kg)</th><th class="r">Recv Bags</th><th class="r">Disp(kg)</th><th class="r">Disp Bags</th><th class="r">Balance(kg)</th><th class="r">Bal Bags</th><th class="r">Active Lots</th><th>Last Activity</th></tr></thead>
+        <tbody>${coRows.map(tr=>`<tr>${[...tr.querySelectorAll('td')].map((td,i)=>`<td${i>0&&i<8?' class="r"':''}>${td.textContent}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;">
+        <div>
+          <div class="print-section-title">Stock by Count</div>
+          <table class="print-table">
+            <thead><tr><th>Count</th><th class="r">Balance(kg)</th><th class="r">Bags</th><th class="r">Lots</th></tr></thead>
+            <tbody>${cntRows.map(tr=>`<tr>${[...tr.querySelectorAll('td')].map((td,i)=>`<td${i>0?' class="r"':''}>${td.textContent}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>
+        </div>
+        <div>
+          <div class="print-section-title">Stock by Shade</div>
+          <table class="print-table">
+            <thead><tr><th>Shade</th><th class="r">Balance(kg)</th><th class="r">Bags</th><th class="r">Lots</th></tr></thead>
+            <tbody>${shdRows.map(tr=>`<tr>${[...tr.querySelectorAll('td')].map((td,i)=>`<td${i>0?' class="r"':''}>${td.textContent}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+
+  } else if (tab === 'prod') {
+    title = 'Production Calculation Report';
+    sub   = 'TFO Production Calculation & Cheese Winding Length';
+    const rows = g('prodTbody').querySelectorAll('tr');
+    const totB = g('prodTotB')?.textContent || '—';
+    const totC = g('prodTotC')?.textContent || '—';
+    // Cheese winding rows
+    const cheeseRows = g('cheeseTbody').querySelectorAll('tr');
+    const cheeseSection = cheeseRows.length ? `
+      <div class="print-section-title" style="margin-top:20px;">🧀 Cheese Winding Length Calculator</div>
+      <div style="font-size:10px;color:#555;margin-bottom:8px;">Formula: A = C × 1.697 × (B ÷ 2) &nbsp;·&nbsp; B = Count, C = Weight (kg), A = Length (metres)</div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>Label / Lot</th>
+          <th class="r">B — Count</th><th class="r">C — Weight (kg)</th>
+          <th class="r">A — Length (m)</th>
+        </tr></thead>
+        <tbody>
+          ${[...cheeseRows].map((tr,i)=>{
+            const id=tr.id.replace('cheeserow_','');
+            return `<tr>
+              <td>${i+1}</td>
+              <td>${g(`cr_label_${id}`)?.value||'—'}</td>
+              <td class="r">${g(`cr_count_${id}`)?.value||'—'}</td>
+              <td class="r">${g(`cr_weight_${id}`)?.value||'—'}</td>
+              <td class="r"><strong>${g(`cr_a_${id}`)?.textContent||'—'}</strong></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>` : '';
+
+    html = `
+      <div class="print-section-title">⚙ TFO Production Calculation</div>
+      <div style="font-size:10px;color:#555;margin-bottom:8px;">Formula: A=(((RPM×2.077)÷(TPI×(Count÷2)))÷8÷144)×12 &nbsp;·&nbsp; B=A×156 drums &nbsp;·&nbsp; C=B×2</div>
+      <div class="print-summary-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px;">
+        <div class="print-kpi"><div class="print-kpi-label">Machines</div><div class="print-kpi-val">${rows.length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Production / 12 hrs</div><div class="print-kpi-val" style="font-size:16px;">${totB}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Production / 24 hrs</div><div class="print-kpi-val" style="font-size:16px;">${totC}</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>Machine / Label</th>
+          <th class="r">RPM</th><th class="r">Count</th><th class="r">TPI</th>
+          <th class="r">A — Per Drum 12hr (kg)</th>
+          <th class="r">B — Per Machine 12hr (kg)</th>
+          <th class="r">C — Per Machine 24hr (kg)</th>
+        </tr></thead>
+        <tbody>
+          ${[...rows].map((tr,i) => {
+            const id = tr.id.replace('prodrow_','');
+            return `<tr>
+              <td>${i+1}</td>
+              <td><strong>${g(`pr_label_${id}`)?.value||'—'}</strong></td>
+              <td class="r">${g(`pr_rpm_${id}`)?.value||'—'}</td>
+              <td class="r">${g(`pr_count_${id}`)?.value||'—'}</td>
+              <td class="r">${g(`pr_tpi_${id}`)?.value||'—'}</td>
+              <td class="r">${g(`pr_a_${id}`)?.textContent||'—'}</td>
+              <td class="r"><strong>${g(`pr_b_${id}`)?.textContent||'—'}</strong></td>
+              <td class="r"><strong>${g(`pr_c_${id}`)?.textContent||'—'}</strong></td>
+            </tr>`;
+          }).join('')}
+          ${rows.length>1?`<tr class="print-count-row">
+            <td colspan="5" style="text-align:right;padding-right:12px;">TOTAL</td>
+            <td class="r">${g('prodTotA')?.textContent||'—'}</td>
+            <td class="r">${totB}</td>
+            <td class="r">${totC}</td>
+          </tr>`:''}
+        </tbody>
+      </table>
+      ${cheeseSection}`;
+
+  }
+  const filterInfo = sub ? `<div class="print-filters"><span>📋 <strong>Report:</strong> ${title}</span><span>🏭 <strong>Unit:</strong> ${unitName}</span><span>📅 <strong>Generated:</strong> ${printDate} ${printTime}</span>${sub!=='All Lots'&&sub?`<span>🔍 <strong>Filters:</strong> ${sub}</span>`:''}</div>` : '';
+
+  const fullDoc = `
+    <div class="print-doc">
+      <div class="print-header">
+        <div>
+          <div class="print-company">${unitName}</div>
+          <div class="print-report-type">${title}</div>
+        </div>
+        <div class="print-meta">
+          <div><strong>Date:</strong> ${printDate}</div>
+          <div><strong>Time:</strong> ${printTime}</div>
+          <div><strong>YarnTrack</strong></div>
+        </div>
+      </div>
+      ${filterInfo}
+      ${html}
+      <div class="print-footer">
+        <div>YarnTrack — ${unitName}</div>
+        <div>Printed on ${printDate} at ${printTime}</div>
+      </div>
+    </div>`;
+
+  g('printContent').innerHTML = fullDoc;
+  g('printModalTitle').textContent = title;
+  g('printModalSub').textContent = printDate + ' · ' + (cfg.name||'');
+  openModal('printModal');
+}
+
+function chipLabel(tab) {
+  const bar = document.querySelector(`#p-${tab} .chip.on`);
+  return bar ? bar.textContent.trim() : 'All';
+}
+
+function doPrint() {
+  const content = g('printContent').innerHTML;
+  const printCSS = g('printStyles').innerHTML;
+  const iframe = g('printFrame');
+  iframe.style.display = 'block';
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #fff; font-family: -apple-system,'Segoe UI','Arial',sans-serif; }
+      @media print {
+        @page { margin: 15mm 12mm; size: A4 landscape; }
+        body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      }
+      ${printCSS}
+    </style>
+    </head><body>${content}</body></html>`);
+  doc.close();
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => { iframe.style.display = 'none'; }, 500);
+  }, 600);
+}
+function sBadge(s){const m={'Received':'b-blue','In Process':'b-amber','Hold':'b-red','Dispatched':'b-green'};return`<span class="badge ${m[s]||'b-blue'}">${s}</span>`;}
+function lotBadge(s){const m={'Received':'b-blue','Returned':'b-red','In Process':'b-amber','Partial Dispatch':'b-amber','Fully Dispatched':'b-green','Completed':'b-green','Hold':'b-red'};return`<span class="badge ${m[s]||'b-blue'}">${s}</span>`;}
+function formBadge(f){const m={'D':'b-green','R':'b-amber','S':'b-blue','Other':'b-purple'};const lbl={'D':'D-Doubled','R':'R-Return','S':'S-Sample','Other':'Other'};return`<span class="badge ${m[f]||'b-blue'}">${lbl[f]||f}</span>`;}
+function onRCoChange(){}
+// stub for removed single-lot autofill (now per-row)
+function onDLotInput(){}
+function onDLotChange(){}
+function clearAutofill(){}
+</script>
+</body>
+</html>
