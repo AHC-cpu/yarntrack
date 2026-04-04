@@ -159,6 +159,9 @@ th.num{text-align:right;}
 /* EMPTY */
 .empty{text-align:center;padding:44px 20px;color:var(--text3);}
 .empty-ico{font-size:36px;margin-bottom:10px;opacity:.35;}
+/* Col panels */
+.col-panel{display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh);}
+.col-panel.open{display:block;}
 /* RESPONSIVE */
 @media(max-width:900px){.nav,.tabbar,.main{padding-left:14px;padding-right:14px;}.g5,.g6{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:repeat(2,1fr);}.kgrid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:600px){.g3,.g4,.g5,.g6{grid-template-columns:repeat(2,1fr);}.g2{grid-template-columns:1fr;}}
@@ -185,6 +188,7 @@ th.num{text-align:right;}
   <button class="tb" onclick="go('lots')">🗂 Lot Status</button>
   <button class="tb" onclick="go('dash')">📊 Dashboard</button>
   <button class="tb" onclick="go('prod')">⚙ Production</button>
+  <button class="tb" onclick="go('pack')">📦 Packed Yarn</button>
 </div>
 
 <div class="main">
@@ -266,12 +270,23 @@ th.num{text-align:right;}
       <button class="chip" onclick="setChip('recv','today',this)">Today</button>
       <button class="chip" onclick="setChip('recv','week',this)">Week</button>
       <button class="chip" onclick="setChip('recv','month',this)">Month</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleRecvColPanel()">⚙ Columns</button>
       <button class="btn btn-ghost btn-sm" onclick="printTab('recv')" style="margin-left:6px;">🖨 Print</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadExcel('recv')" style="margin-left:2px;color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
     </div>
   </div>
+
+  <!-- RECV COLUMN PANEL -->
+  <div id="recvColPanel" class="col-panel">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Show / Hide Columns</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;" id="recvColToggles"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="setAllRecvCols(true)">Show All</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAllRecvCols(false)">Hide All</button>
+    </div>
+  </div>
   <div class="tw"><table>
-    <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th><th>Double Lot</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th><th>Single Tip</th><th>Double Tip</th><th>Shade Card</th><th class="num">Paper Cone</th><th class="num">Bags</th><th class="num">Weight (kg)</th><th class="num">JW Rate ₹</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead id="recvTheadWrap"><tr id="recvThead"></tr></thead>
     <tbody id="tbR"></tbody>
   </table></div>
   <div id="emR" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No receipts yet.</p></div>
@@ -326,6 +341,7 @@ th.num{text-align:right;}
           <th class="num" style="min-width:80px;">Bags *</th>
           <th class="num" style="min-width:110px;">Weight (kg) *</th>
           <th class="num" style="min-width:90px;">JW Rate ₹</th>
+          <th class="num" style="min-width:120px;color:var(--purple);">Total Value (₹)</th>
           <th class="num" style="min-width:110px;color:var(--amber);">Pending Qty (kg)</th>
           <th></th>
         </tr></thead>
@@ -334,11 +350,12 @@ th.num{text-align:right;}
     </div>
 
     <!-- TOTALS BAR -->
-    <div id="dispTotalsBar" style="display:none;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:10px 16px;margin-bottom:14px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;">
+    <div id="dispTotalsBar" style="display:none;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:10px 16px;margin-bottom:14px;gap:24px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:11px;color:var(--text3);">CHALLAN TOTAL:</span>
-      <span style="font-size:13px;font-weight:600;color:var(--amber);">Lots: <span id="tot_lots">0</span></span>
+      <span style="font-size:13px;font-weight:600;color:var(--blue);">Lots: <span id="tot_lots">0</span></span>
       <span style="font-size:13px;font-weight:600;color:var(--green);">Weight: <span id="tot_wt">0.00</span> kg</span>
-      <span style="font-size:13px;font-weight:600;color:var(--blue);">Bags: <span id="tot_bags">0</span></span>
+      <span style="font-size:13px;font-weight:600;color:var(--text2);">Bags: <span id="tot_bags">0</span></span>
+      <span style="font-size:13px;font-weight:700;color:var(--purple);">Total Value: ₹<span id="tot_value">0.00</span></span>
     </div>
 
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -358,12 +375,23 @@ th.num{text-align:right;}
       <button class="chip" onclick="setChip('disp','today',this)">Today</button>
       <button class="chip" onclick="setChip('disp','week',this)">Week</button>
       <button class="chip" onclick="setChip('disp','month',this)">Month</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleDispColPanel()">⚙ Columns</button>
       <button class="btn btn-ghost btn-sm" onclick="printTab('disp')" style="margin-left:6px;">🖨 Print</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadExcel('disp')" style="margin-left:2px;color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
     </div>
   </div>
+
+  <!-- DISP COLUMN PANEL -->
+  <div id="dispColPanel" class="col-panel">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Show / Hide Columns</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;" id="dispColToggles"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="setAllDispCols(true)">Show All</button>
+      <button class="btn btn-ghost btn-sm" onclick="setAllDispCols(false)">Hide All</button>
+    </div>
+  </div>
   <div class="tw"><table>
-    <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th><th class="num">Bags</th><th class="num">Weight (kg)</th><th class="num">JW Rate ₹</th><th>Form</th><th>Plant</th><th>Actions</th></tr></thead>
+    <thead><tr id="dispThead"></tr></thead>
     <tbody id="tbD"></tbody>
   </table></div>
   <div id="emD" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No dispatches yet.</p></div>
@@ -392,7 +420,7 @@ th.num{text-align:right;}
   </div>
 
   <!-- COLUMN VISIBILITY PANEL -->
-  <div id="colPanel" style="display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh);">
+  <div id="colPanel" class="col-panel">
     <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Show / Hide Columns</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;" id="colToggles"></div>
     <div style="margin-top:10px;display:flex;gap:8px;">
@@ -624,6 +652,85 @@ th.num{text-align:right;}
     <div id="emCheese" style="text-align:center;padding:24px;color:var(--text3);font-size:12px;display:none;">
       No rows yet. Click <strong>+ Add Row</strong> for batch calculation.
     </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 6 — PACKED YARN                      -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-pack" class="panel">
+
+  <div class="shdr">
+    <div class="stitle">Packed Yarn <small>Enter packing details per lot — recalculates pending qty</small></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="buildPackedYarn()">↺ Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="savePacked()" style="background:var(--blue);color:#fff;border-color:var(--blue);">💾 Save Packing</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadExcel('pack')" style="color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
+      <button class="btn btn-ghost btn-sm" onclick="printTab('pack')">🖨 Print</button>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="fbar">
+    <input type="text" placeholder="Search lot / company…" id="srchPack" oninput="buildPackedYarn()" style="width:200px;">
+    <select id="fPackCo" onchange="buildPackedYarn()" style="width:140px;"><option value="">All Companies</option></select>
+    <select id="fPackSt" onchange="buildPackedYarn()" style="width:160px;">
+      <option value="pending" selected>Has Pending Qty</option>
+      <option value="">All Lots</option>
+      <option value="packed">Fully Packed</option>
+    </select>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="kgrid" style="margin-bottom:18px;" id="packKpiRow">
+    <div class="kcard kc-blue"><div class="klabel">Total Lots</div><div class="kval" id="pk_lots">—</div><div class="ksub" id="pk_lots_s">in current view</div></div>
+    <div class="kcard kc-amber"><div class="klabel">Total Pending (kg)</div><div class="kval" id="pk_pend">—</div><div class="ksub" id="pk_pend_s">before packing</div></div>
+    <div class="kcard kc-green"><div class="klabel">Total Packed (kg)</div><div class="kval" id="pk_packed">—</div><div class="ksub" id="pk_packed_s">bags entered</div></div>
+    <div class="kcard kc-red"><div class="klabel">Remaining After Pack (kg)</div><div class="kval" id="pk_remain">—</div><div class="ksub" id="pk_remain_s">still to pack</div></div>
+  </div>
+
+  <!-- PACKING TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="tw">
+      <table id="packTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="min-width:120px;">Lot No.</th>
+            <th>Company</th>
+            <th>Shade</th>
+            <th>Count</th>
+            <th>Double Lot</th>
+            <th class="num" style="min-width:100px;">Recv (kg)</th>
+            <th class="num" style="min-width:90px;">Return (kg)</th>
+            <th class="num" style="min-width:90px;">Disp (kg)</th>
+            <th class="num" style="min-width:110px;color:var(--blue);">Allowed<br>Wastage (kg)</th>
+            <th class="num" style="min-width:120px;background:rgba(45,107,228,.06);color:var(--blue);font-weight:700;">Pending Qty (kg)</th>
+            <th class="num" style="min-width:110px;background:rgba(13,124,74,.06);color:var(--green);">No. of Bags</th>
+            <th class="num" style="min-width:120px;background:rgba(13,124,74,.06);color:var(--green);">Per Bag (kg)</th>
+            <th class="num" style="min-width:110px;background:rgba(13,124,74,.06);color:var(--green);font-weight:700;">Packed Qty (kg)</th>
+            <th class="num" style="min-width:130px;background:rgba(192,57,43,.06);color:var(--red);font-weight:700;">Remaining (kg)</th>
+          </tr>
+        </thead>
+        <tbody id="packTbody"></tbody>
+        <tfoot>
+          <tr id="packTotalsRow" style="display:none;background:var(--surf2);">
+            <td colspan="10" style="padding:10px 13px;font-weight:700;text-align:right;color:var(--text2);border-top:2px solid var(--border);">TOTAL</td>
+            <td class="num" id="pkTotPend" style="padding:10px 13px;font-weight:700;color:var(--blue);border-top:2px solid var(--border);background:rgba(45,107,228,.04);"></td>
+            <td class="num" id="pkTotBags" style="padding:10px 13px;font-weight:700;color:var(--green);border-top:2px solid var(--border);background:rgba(13,124,74,.04);"></td>
+            <td class="num" style="border-top:2px solid var(--border);background:rgba(13,124,74,.04);"></td>
+            <td class="num" id="pkTotPacked" style="padding:10px 13px;font-weight:700;color:var(--green);border-top:2px solid var(--border);background:rgba(13,124,74,.04);"></td>
+            <td class="num" id="pkTotRemain" style="padding:10px 13px;font-weight:700;color:var(--red);border-top:2px solid var(--border);background:rgba(192,57,43,.04);"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div id="emPack" class="empty" style="display:none;">
+    <div class="empty-ico">📦</div>
+    <p>No lots found. Add receipts in Order Receive first.</p>
   </div>
 
 </div>
@@ -1175,7 +1282,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Load any persisted overrides + local data
   loadCfg(); loadLocal(); loadMaster();
-  initColVis();
+  initColVis(); initRecvColVis(); initDispColVis();
   populateAll(); renderAll();
 
   // Init Google Auth — retry until GIS script is loaded (async defer)
@@ -1354,6 +1461,7 @@ function initGoogleAuth() {
         if (cfg.sid && cfg.sid !== 'YOUR_SPREADSHEET_ID_HERE') {
           ensureTabs().then(() => {
             loadMasterFromSheets().then(() => syncSheets());
+            loadPackedFromSheets();
           });
         }
       });
@@ -1481,7 +1589,7 @@ async function ensureTabs() {
     const spreadsheetId = cfg.sid;
 
     // Create missing sheets
-    const toCreate = ['Receipts','Dispatch','ChangeHistory','MasterData'].filter(n => !existing.includes(n));
+    const toCreate = ['Receipts','Dispatch','ChangeHistory','MasterData','PackedYarn'].filter(n => !existing.includes(n));
     if (toCreate.length) {
       const requests = toCreate.map(title => ({ addSheet: { properties: { title } } }));
       await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
@@ -1496,7 +1604,8 @@ async function ensureTabs() {
       'Receipts':      R_HDR_LABELS,
       'Dispatch':      D_HDR_LABELS,
       'ChangeHistory': CH_HDR_LABELS,
-      'MasterData':    ['Key','Value','LastUpdated']
+      'MasterData':    ['Key','Value','LastUpdated'],
+      'PackedYarn':    ['Key','Value','LastUpdated']
     };
     for (const [tab, hdr] of Object.entries(headerMap)) {
       // Check if row 1 already has data
@@ -1956,9 +2065,10 @@ function addLotRow() {
         <option value="">—</option>${blendOpts}
       </select>
     </td>
-    <td><input type="number" id="rl_bags_${idx}" placeholder="0" min="0" style="min-width:70px;" oninput="updateTotals()"></td>
-    <td><input type="number" id="rl_wt_${idx}" placeholder="0.00" step="0.01" min="0" style="min-width:100px;" oninput="updateTotals()"></td>
-    <td><input type="number" id="rl_rate_${idx}" placeholder="—" step="0.01" style="min-width:80px;"></td>
+    <td><input type="number" id="rl_bags_${idx}" placeholder="0" min="0" style="min-width:70px;" oninput="updateTotals();updateRowValue(${idx})"></td>
+    <td><input type="number" id="rl_wt_${idx}" placeholder="0.00" step="0.01" min="0" style="min-width:100px;" oninput="updateTotals();updateRowValue(${idx});updateRowPending(${idx})"></td>
+    <td><input type="number" id="rl_rate_${idx}" placeholder="—" step="0.01" style="min-width:80px;" oninput="updateRowValue(${idx})"></td>
+    <td class="num" id="rl_value_${idx}" style="font-weight:700;color:var(--purple);min-width:110px;font-size:12px;">—</td>
     <td id="rl_pending_${idx}" class="num" style="font-weight:700;color:var(--text3);min-width:100px;font-size:12px;">—</td>
     <td><button class="btn btn-ghost btn-sm" onclick="removeLotRow(${idx})" style="color:var(--red);border-color:var(--red-dim);">🗑</button></td>
   `;
@@ -1985,20 +2095,68 @@ function updateLotRowNumbers() {
 
 function updateTotals() {
   const rows = g('lotRowsTbody').querySelectorAll('tr');
-  let totalBags=0, totalWt=0;
+  let totalBags=0, totalWt=0, totalValue=0;
+  const defaultRate = parseFloat(g('d_rate')?.value)||0;
   rows.forEach(tr => {
     const id = tr.id.replace('lotrow_','');
-    totalBags += parseFloat(g(`rl_bags_${id}`)?.value)||0;
-    totalWt   += parseFloat(g(`rl_wt_${id}`)?.value)||0;
+    const bags = parseFloat(g(`rl_bags_${id}`)?.value)||0;
+    const wt   = parseFloat(g(`rl_wt_${id}`)?.value)||0;
+    const rate = parseFloat(g(`rl_rate_${id}`)?.value)||defaultRate;
+    totalBags  += bags;
+    totalWt    += wt;
+    totalValue += wt * rate;
   });
   const bar = g('dispTotalsBar');
   if(rows.length>0){
     bar.style.display='flex';
-    g('tot_lots').textContent = rows.length;
-    g('tot_bags').textContent = totalBags;
-    g('tot_wt').textContent   = totalWt.toFixed(2);
+    g('tot_lots').textContent  = rows.length;
+    g('tot_bags').textContent  = totalBags;
+    g('tot_wt').textContent    = totalWt.toFixed(2);
+    g('tot_value').textContent = totalValue.toFixed(2);
   } else {
     bar.style.display='none';
+  }
+}
+
+function updateRowValue(idx) {
+  const wt   = parseFloat(g(`rl_wt_${idx}`)?.value)||0;
+  const rate = parseFloat(g(`rl_rate_${idx}`)?.value)||parseFloat(g('d_rate')?.value)||0;
+  const valEl = g(`rl_value_${idx}`);
+  if (valEl) {
+    const val = wt * rate;
+    valEl.textContent = val>0 ? '₹'+val.toFixed(2) : '—';
+    valEl.style.color = val>0 ? 'var(--purple)' : 'var(--text3)';
+  }
+  updateTotals();
+}
+
+function updateRowPending(idx) {
+  // Recalculate pending after entering dispatch weight
+  const lotVal = g(`rl_lot_${idx}`)?.value.trim();
+  if (!lotVal) return;
+  const match = recv.find(r=>r.lotNo.trim().toLowerCase()===lotVal.toLowerCase());
+  if (!match) return;
+  const enteredWt = parseFloat(g(`rl_wt_${idx}`)?.value)||0;
+  const stats = (() => {
+    const totalRecv   = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>s+r.weight,0);
+    const allowedPct  = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>Math.max(s,r.allowedShortage||0),0);
+    const allowedWaste= totalRecv*(allowedPct/100);
+    const totalDisp   = disp.filter(d=>d.lotNo===match.lotNo&&d.form!=='R').reduce((s,d)=>s+d.weight,0);
+    const totalReturn = disp.filter(d=>d.lotNo===match.lotNo&&d.form==='R').reduce((s,d)=>s+d.weight,0);
+    const base = Math.max(0, totalRecv-allowedWaste-totalDisp-totalReturn);
+    return { base, allowedPct };
+  })();
+  const newPending = Math.max(0, stats.base - enteredWt);
+  const pendingCell = g(`rl_pending_${idx}`);
+  if (pendingCell) {
+    if (stats.allowedPct > 0) {
+      pendingCell.textContent = fmtKg(newPending) + ' kg';
+      pendingCell.style.color = newPending <= 0 ? 'var(--green)' : newPending < stats.base*0.1 ? 'var(--amber)' : 'var(--amber)';
+      pendingCell.title = `After this dispatch: ${fmtKg(newPending)} kg remaining`;
+    } else {
+      pendingCell.textContent = fmtKg(newPending) + ' kg';
+      pendingCell.style.color = newPending <= 0 ? 'var(--green)' : 'var(--blue)';
+    }
   }
 }
 
@@ -2193,6 +2351,51 @@ function byDate(rows, tab) {
 // ═══════════════════════════════════════════════
 // RENDER RECEIVE TABLE
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// RECEIVE COLUMN VISIBILITY
+// ═══════════════════════════════════════════════
+const RECV_COLS = [
+  { key:'num',    label:'#',              def:true  },
+  { key:'date',   label:'Date',           def:true  },
+  { key:'challan',label:'Challan',        def:true  },
+  { key:'company',label:'Company',        def:true  },
+  { key:'lotNo',  label:'Lot No.',        def:true  },
+  { key:'altLot', label:'Double Lot',     def:true  },
+  { key:'shade',  label:'Shade',          def:true  },
+  { key:'count',  label:'Count',          def:true  },
+  { key:'tpi',    label:'TPI',            def:true  },
+  { key:'blend',  label:'Blend',          def:false },
+  { key:'sct',    label:'Single Tip',     def:false },
+  { key:'dct',    label:'Double Tip',     def:false },
+  { key:'sc',     label:'Shade Card',     def:false },
+  { key:'pc',     label:'Paper Cone',     def:false },
+  { key:'bags',   label:'Bags',           def:true  },
+  { key:'weight', label:'Weight (kg)',    def:true  },
+  { key:'rate',   label:'JW Rate',        def:true  },
+  { key:'status', label:'Status',         def:true  },
+  { key:'actions',label:'Actions',        def:true  },
+];
+let recvColVis = {};
+function initRecvColVis() {
+  const saved = localStorage.getItem('yt2_recvcols');
+  if (saved) recvColVis = JSON.parse(saved);
+  else RECV_COLS.forEach(c => recvColVis[c.key] = c.def);
+  renderRecvColToggles();
+}
+function renderRecvColToggles() {
+  const wrap = g('recvColToggles'); if(!wrap) return;
+  wrap.innerHTML = RECV_COLS.map(c => {
+    const on = recvColVis[c.key] !== false;
+    return `<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid ${on?'var(--blue)':'var(--border)'};background:${on?'var(--blue-dim)':'transparent'};cursor:pointer;font-size:11px;color:${on?'var(--blue)':'var(--text3)'};">
+      <input type="checkbox" ${on?'checked':''} onchange="setRecvCol('${c.key}',this.checked)" style="width:auto;display:none;">
+      ${on?'✓ ':''} ${c.label}</label>`;
+  }).join('');
+}
+function setRecvCol(key,val){ recvColVis[key]=val; localStorage.setItem('yt2_recvcols',JSON.stringify(recvColVis)); renderRecvColToggles(); renderR(); }
+function setAllRecvCols(val){ RECV_COLS.forEach(c=>recvColVis[c.key]=val); localStorage.setItem('yt2_recvcols',JSON.stringify(recvColVis)); renderRecvColToggles(); renderR(); }
+function toggleRecvColPanel(){ g('recvColPanel').classList.toggle('open'); }
+function rcv(k){ return recvColVis[k]!==false; }
+
 function renderR() {
   let rows=[...recv];
   const s=g('srchR').value.toLowerCase(), st=g('fRSt').value, co=g('fRCo').value;
@@ -2202,34 +2405,98 @@ function renderR() {
   if(co) rows=rows.filter(r=>r.company===co);
   rows.sort((a,b)=>b.date.localeCompare(a.date));
   const tb=g('tbR'), em=g('emR');
+  // Update header
+  const thead = tb.closest('table')?.querySelector('thead tr');
+  if(thead) thead.innerHTML = [
+    rcv('num')    && '<th>#</th>',
+    rcv('date')   && '<th>Date</th>',
+    rcv('challan')&& '<th>Challan</th>',
+    rcv('company')&& '<th>Company</th>',
+    rcv('lotNo')  && '<th>Lot No.</th>',
+    rcv('altLot') && '<th>Double Lot</th>',
+    rcv('shade')  && '<th>Shade</th>',
+    rcv('count')  && '<th>Count</th>',
+    rcv('tpi')    && '<th>TPI</th>',
+    rcv('blend')  && '<th>Blend</th>',
+    rcv('sct')    && '<th>Single Tip</th>',
+    rcv('dct')    && '<th>Double Tip</th>',
+    rcv('sc')     && '<th>Shade Card</th>',
+    rcv('pc')     && '<th class="num">Paper Cone</th>',
+    rcv('bags')   && '<th class="num">Bags</th>',
+    rcv('weight') && '<th class="num">Weight (kg)</th>',
+    rcv('rate')   && '<th class="num">JW Rate ₹</th>',
+    rcv('status') && '<th>Status</th>',
+    rcv('actions')&& '<th>Actions</th>',
+  ].filter(Boolean).join('');
   if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
-  tb.innerHTML=rows.map((r,i)=>`<tr>
-    <td style="color:var(--text3)">${i+1}</td><td>${r.date}</td>
-    <td style="color:var(--text3)">${r.challan}</td>
-    <td style="font-weight:500">${r.company}</td>
-    <td style="color:var(--amber);font-weight:600">${r.lotNo}</td>
-    <td style="color:var(--text3)">${r.altLot||'—'}</td>
-    <td>${r.shade||'—'}</td>
-    <td><span class="badge b-blue">${r.count||'—'}</span></td>
-    <td>${r.tpi||'—'}</td><td style="color:var(--text3)">${r.blend||'—'}</td>
-    <td>${r.singleConeTip||'—'}</td>
-    <td>${r.doubleConeTip||'—'}</td>
-    <td>${r.shadeCard||'—'}</td>
-    <td class="num">${r.paperCone||'—'}</td>
-    <td class="num">${r.bags}</td>
-    <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
-    <td class="num">${r.rate?'₹'+r.rate:'—'}</td>
-    <td>${sBadge(r.status)}</td>
-    <td style="display:flex;gap:4px;">
-      <button class="btn btn-ghost btn-sm" onclick="openEditModal('recv','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button>
-      <button class="btn btn-ghost btn-sm" onclick="del('recv','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button>
-    </td>
-  </tr>`).join('');
+  tb.innerHTML=rows.map((r,i)=>{
+    const cells = [
+      rcv('num')    && `<td style="color:var(--text3)">${i+1}</td>`,
+      rcv('date')   && `<td>${r.date}</td>`,
+      rcv('challan')&& `<td style="color:var(--text3)">${r.challan}</td>`,
+      rcv('company')&& `<td style="font-weight:500">${r.company}</td>`,
+      rcv('lotNo')  && `<td style="color:var(--blue);font-weight:600">${r.lotNo}</td>`,
+      rcv('altLot') && `<td style="color:var(--text3)">${r.altLot||'—'}</td>`,
+      rcv('shade')  && `<td>${r.shade||'—'}</td>`,
+      rcv('count')  && `<td><span class="badge b-blue">${r.count||'—'}</span></td>`,
+      rcv('tpi')    && `<td>${r.tpi||'—'}</td>`,
+      rcv('blend')  && `<td style="color:var(--text3)">${r.blend||'—'}</td>`,
+      rcv('sct')    && `<td>${r.singleConeTip||'—'}</td>`,
+      rcv('dct')    && `<td>${r.doubleConeTip||'—'}</td>`,
+      rcv('sc')     && `<td>${r.shadeCard||'—'}</td>`,
+      rcv('pc')     && `<td class="num">${r.paperCone||'—'}</td>`,
+      rcv('bags')   && `<td class="num">${r.bags}</td>`,
+      rcv('weight') && `<td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>`,
+      rcv('rate')   && `<td class="num">${r.rate?'₹'+r.rate:'—'}</td>`,
+      rcv('status') && `<td>${sBadge(r.status)}</td>`,
+      rcv('actions')&& `<td style="display:flex;gap:4px;"><button class="btn btn-ghost btn-sm" onclick="openEditModal('recv','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button><button class="btn btn-ghost btn-sm" onclick="del('recv','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button></td>`,
+    ].filter(Boolean).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
-// RENDER DISPATCH TABLE
+// DISPATCH COLUMN VISIBILITY
 // ═══════════════════════════════════════════════
+const DISP_COLS = [
+  { key:'num',    label:'#',           def:true  },
+  { key:'date',   label:'Date',        def:true  },
+  { key:'challan',label:'Challan',     def:true  },
+  { key:'company',label:'Company',     def:true  },
+  { key:'lotNo',  label:'Lot No.',     def:true  },
+  { key:'shade',  label:'Shade',       def:true  },
+  { key:'count',  label:'Count',       def:true  },
+  { key:'tpi',    label:'TPI',         def:false },
+  { key:'blend',  label:'Blend',       def:false },
+  { key:'bags',   label:'Bags',        def:true  },
+  { key:'weight', label:'Weight (kg)', def:true  },
+  { key:'rate',   label:'JW Rate',     def:true  },
+  { key:'value',  label:'Total Value', def:true  },
+  { key:'form',   label:'Form',        def:true  },
+  { key:'plant',  label:'Plant',       def:true  },
+  { key:'actions',label:'Actions',     def:true  },
+];
+let dispColVis = {};
+function initDispColVis() {
+  const saved = localStorage.getItem('yt2_dispcols');
+  if (saved) dispColVis = JSON.parse(saved);
+  else DISP_COLS.forEach(c => dispColVis[c.key] = c.def);
+  renderDispColToggles();
+}
+function renderDispColToggles() {
+  const wrap = g('dispColToggles'); if(!wrap) return;
+  wrap.innerHTML = DISP_COLS.map(c => {
+    const on = dispColVis[c.key] !== false;
+    return `<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid ${on?'var(--blue)':'var(--border)'};background:${on?'var(--blue-dim)':'transparent'};cursor:pointer;font-size:11px;color:${on?'var(--blue)':'var(--text3)'};">
+      <input type="checkbox" ${on?'checked':''} onchange="setDispCol('${c.key}',this.checked)" style="width:auto;display:none;">
+      ${on?'✓ ':''} ${c.label}</label>`;
+  }).join('');
+}
+function setDispCol(key,val){ dispColVis[key]=val; localStorage.setItem('yt2_dispcols',JSON.stringify(dispColVis)); renderDispColToggles(); renderD(); }
+function setAllDispCols(val){ DISP_COLS.forEach(c=>dispColVis[c.key]=val); localStorage.setItem('yt2_dispcols',JSON.stringify(dispColVis)); renderDispColToggles(); renderD(); }
+function toggleDispColPanel(){ g('dispColPanel').classList.toggle('open'); }
+function dco(k){ return dispColVis[k]!==false; }
+
 function renderD() {
   let rows=[...disp];
   const s=g('srchD').value.toLowerCase(), co=g('fDCo').value, fm=g('fDForm').value;
@@ -2239,25 +2506,49 @@ function renderD() {
   if(fm) rows=rows.filter(r=>r.form===fm);
   rows.sort((a,b)=>b.date.localeCompare(a.date));
   const tb=g('tbD'), em=g('emD');
+  // Update header
+  const thead = tb.closest('table')?.querySelector('thead tr');
+  if(thead) thead.innerHTML = [
+    dco('num')    && '<th>#</th>',
+    dco('date')   && '<th>Date</th>',
+    dco('challan')&& '<th>Challan</th>',
+    dco('company')&& '<th>Company</th>',
+    dco('lotNo')  && '<th>Lot No.</th>',
+    dco('shade')  && '<th>Shade</th>',
+    dco('count')  && '<th>Count</th>',
+    dco('tpi')    && '<th>TPI</th>',
+    dco('blend')  && '<th>Blend</th>',
+    dco('bags')   && '<th class="num">Bags</th>',
+    dco('weight') && '<th class="num">Weight (kg)</th>',
+    dco('rate')   && '<th class="num">JW Rate ₹</th>',
+    dco('value')  && '<th class="num" style="color:var(--purple);">Total Value (₹)</th>',
+    dco('form')   && '<th>Form</th>',
+    dco('plant')  && '<th>Plant</th>',
+    dco('actions')&& '<th>Actions</th>',
+  ].filter(Boolean).join('');
   if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
-  tb.innerHTML=rows.map((r,i)=>`<tr>
-    <td style="color:var(--text3)">${i+1}</td><td>${r.date}</td>
-    <td style="color:var(--text3)">${r.challan}</td>
-    <td style="font-weight:500">${r.company}</td>
-    <td style="color:var(--amber);font-weight:600">${r.lotNo}</td>
-    <td>${r.shade||'—'}</td>
-    <td><span class="badge b-blue">${r.count||'—'}</span></td>
-    <td>${r.tpi||'—'}</td><td style="color:var(--text3)">${r.blend||'—'}</td>
-    <td class="num">${r.bags}</td>
-    <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
-    <td class="num">${r.rate?'₹'+r.rate:'—'}</td>
-    <td>${formBadge(r.form)}</td>
-    <td style="color:var(--text3)">${r.plant||'—'}</td>
-    <td style="display:flex;gap:4px;">
-      <button class="btn btn-ghost btn-sm" onclick="openEditModal('disp','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button>
-      <button class="btn btn-ghost btn-sm" onclick="del('disp','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button>
-    </td>
-  </tr>`).join('');
+  tb.innerHTML=rows.map((r,i)=>{
+    const totalVal = (r.weight||0)*(r.rate||0);
+    const cells = [
+      dco('num')    && `<td style="color:var(--text3)">${i+1}</td>`,
+      dco('date')   && `<td>${r.date}</td>`,
+      dco('challan')&& `<td style="color:var(--text3)">${r.challan}</td>`,
+      dco('company')&& `<td style="font-weight:500">${r.company}</td>`,
+      dco('lotNo')  && `<td style="color:var(--blue);font-weight:600">${r.lotNo}</td>`,
+      dco('shade')  && `<td>${r.shade||'—'}</td>`,
+      dco('count')  && `<td><span class="badge b-blue">${r.count||'—'}</span></td>`,
+      dco('tpi')    && `<td>${r.tpi||'—'}</td>`,
+      dco('blend')  && `<td style="color:var(--text3)">${r.blend||'—'}</td>`,
+      dco('bags')   && `<td class="num">${r.bags}</td>`,
+      dco('weight') && `<td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>`,
+      dco('rate')   && `<td class="num">${r.rate?'₹'+r.rate:'—'}</td>`,
+      dco('value')  && `<td class="num" style="font-weight:700;color:var(--purple);">${totalVal>0?'₹'+totalVal.toFixed(2):'—'}</td>`,
+      dco('form')   && `<td>${formBadge(r.form)}</td>`,
+      dco('plant')  && `<td style="color:var(--text3)">${r.plant||'—'}</td>`,
+      dco('actions')&& `<td style="display:flex;gap:4px;"><button class="btn btn-ghost btn-sm" onclick="openEditModal('disp','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button><button class="btn btn-ghost btn-sm" onclick="del('disp','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button></td>`,
+    ].filter(Boolean).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -2328,10 +2619,7 @@ function setAllCols(val) {
   buildLots();
 }
 
-function toggleColPanel() {
-  const p = g('colPanel');
-  p.style.display = p.style.display === 'none' ? '' : 'none';
-}
+function toggleColPanel() { g('colPanel').classList.toggle('open'); }
 
 function colVisible(key) {
   return lotColVis[key] !== false;
@@ -2517,6 +2805,219 @@ function buildLots() {
 // ═══════════════════════════════════════════════
 // MARK LOT COMPLETE / UNMARK
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// PACKED YARN
+// ═══════════════════════════════════════════════
+
+// packed data: { lotNo: { bags: N, perBagKg: N } }
+let packedData = JSON.parse(localStorage.getItem('yt2_packed') || '{}');
+
+function savePackedLocal() {
+  localStorage.setItem('yt2_packed', JSON.stringify(packedData));
+}
+
+function getLotStats(lotNo) {
+  const recvRows  = recv.filter(r => r.lotNo === lotNo);
+  const recvKg    = recvRows.reduce((s,r) => s+r.weight, 0);
+  const recvBags  = recvRows.reduce((s,r) => s+r.bags, 0);
+  const allowed   = recvRows.reduce((s,r) => Math.max(s, r.allowedShortage||0), 0);
+  const returnKg  = disp.filter(d => d.lotNo===lotNo && d.form==='R').reduce((s,d) => s+d.weight, 0);
+  const dispKg    = disp.filter(d => d.lotNo===lotNo && d.form!=='R').reduce((s,d) => s+d.weight, 0);
+  const allowedWaste = recvKg * (allowed/100);
+  const pendingQty   = Math.max(0, recvKg - returnKg - dispKg - allowedWaste);
+  return { recvKg, recvBags, returnKg, dispKg, allowedWaste, allowed, pendingQty };
+}
+
+function buildPackedYarn() {
+  // Populate company filter
+  const coSel = g('fPackCo');
+  const curCo = coSel.value;
+  const cos = [...new Set(recv.map(r=>r.company))].sort();
+  coSel.innerHTML = '<option value="">All Companies</option>' + cos.map(c=>`<option value="${c}"${c===curCo?'selected':''}>${c}</option>`).join('');
+
+  const srch  = g('srchPack').value.toLowerCase();
+  const fCo   = g('fPackCo').value;
+  const fSt   = g('fPackSt').value;
+
+  // Build unique lot list from receipts
+  const lotNos = [...new Set(recv.map(r=>r.lotNo))];
+
+  let rows = lotNos.map(lotNo => {
+    const rr      = recv.filter(r=>r.lotNo===lotNo);
+    const company = rr[0]?.company||'';
+    const shade   = rr[0]?.shade||'';
+    const count   = rr[0]?.count||'';
+    const altLot  = rr[0]?.altLot||'';
+    const stats   = getLotStats(lotNo);
+    const pd      = packedData[lotNo] || { bags:0, perBagKg:0 };
+    const packedQty  = (pd.bags||0) * (pd.perBagKg||0);
+    const remaining  = Math.max(0, stats.pendingQty - packedQty);
+    return { lotNo, company, shade, count, altLot, ...stats, pd, packedQty, remaining };
+  });
+
+  // Apply filters
+  if (srch) rows = rows.filter(r=>(r.lotNo+r.company).toLowerCase().includes(srch));
+  if (fCo)  rows = rows.filter(r=>r.company===fCo);
+  if (fSt==='pending') rows = rows.filter(r=>r.pendingQty>0.01);
+  if (fSt==='packed')  rows = rows.filter(r=>r.remaining<=0.01 && r.packedQty>0);
+
+  // Sort: lots with pending first
+  rows.sort((a,b)=>(b.pendingQty-a.pendingQty)||a.lotNo.localeCompare(b.lotNo));
+
+  const tb  = g('packTbody');
+  const em  = g('emPack');
+  const tot = g('packTotalsRow');
+
+  if (!rows.length) {
+    tb.innerHTML=''; em.style.display=''; tot.style.display='none';
+    g('pk_lots').textContent='0'; g('pk_pend').textContent='0.00';
+    g('pk_packed').textContent='0.00'; g('pk_remain').textContent='0.00';
+    return;
+  }
+  em.style.display='none';
+
+  tb.innerHTML = rows.map((r,i) => {
+    const pendColor  = r.pendingQty>0 ? 'var(--blue)' : 'var(--text3)';
+    const packColor  = r.packedQty>0  ? 'var(--green)' : 'var(--text3)';
+    const remColor   = r.remaining<=0 ? 'var(--green)' : r.remaining<=r.pendingQty*0.1 ? 'var(--amber)' : 'var(--red)';
+    const rowBg      = r.remaining<=0.01 && r.packedQty>0 ? 'background:rgba(13,124,74,.04);' : '';
+    return `<tr style="${rowBg}">
+      <td style="color:var(--text3)">${i+1}</td>
+      <td style="color:var(--blue);font-weight:700">${r.lotNo}</td>
+      <td style="font-weight:500">${r.company}</td>
+      <td>${r.shade||'—'}</td>
+      <td><span class="badge b-blue">${r.count||'—'}</span></td>
+      <td style="color:var(--text3)">${r.altLot||'—'}</td>
+      <td class="num">${fmtKg(r.recvKg)}</td>
+      <td class="num" style="color:${r.returnKg>0?'var(--red)':'var(--text3)'};">${r.returnKg>0?'−'+fmtKg(r.returnKg):'—'}</td>
+      <td class="num">${fmtKg(r.dispKg)}</td>
+      <td class="num" style="color:var(--text3)">${r.allowed>0?fmtKg(r.allowedWaste)+'<br><small style="font-size:9px;">('+r.allowed+'%)</small>':'—'}</td>
+      <td class="num" style="font-weight:700;color:${pendColor};">${fmtKg(r.pendingQty)}</td>
+      <td style="padding:4px 8px;background:rgba(13,124,74,.04);">
+        <input type="number" value="${r.pd.bags||''}" min="0" step="1"
+          placeholder="0" style="width:80px;text-align:right;"
+          oninput="updatePacked('${r.lotNo}','bags',this.value)"
+          title="Number of bags packed">
+      </td>
+      <td style="padding:4px 8px;background:rgba(13,124,74,.04);">
+        <input type="number" value="${r.pd.perBagKg||''}" min="0" step="0.01"
+          placeholder="0.00" style="width:90px;text-align:right;"
+          oninput="updatePacked('${r.lotNo}','perBagKg',this.value)"
+          title="Weight per bag in kg">
+      </td>
+      <td class="num" id="pk_packed_${r.lotNo}" style="font-weight:700;color:${packColor};background:rgba(13,124,74,.04);">${r.packedQty>0?fmtKg(r.packedQty):'—'}</td>
+      <td class="num" id="pk_remain_${r.lotNo}" style="font-weight:700;color:${remColor};background:rgba(192,57,43,.04);">${fmtKg(r.remaining)}</td>
+    </tr>`;
+  }).join('');
+
+  // Totals row
+  const totPend   = rows.reduce((s,r)=>s+r.pendingQty,0);
+  const totBags   = rows.reduce((s,r)=>s+(r.pd.bags||0),0);
+  const totPacked = rows.reduce((s,r)=>s+r.packedQty,0);
+  const totRemain = rows.reduce((s,r)=>s+r.remaining,0);
+  tot.style.display='';
+  g('pkTotPend').textContent   = fmtKg(totPend)+' kg';
+  g('pkTotBags').textContent   = totBags+' bags';
+  g('pkTotPacked').textContent = fmtKg(totPacked)+' kg';
+  g('pkTotRemain').textContent = fmtKg(totRemain)+' kg';
+
+  // KPI cards
+  g('pk_lots').textContent    = rows.length;
+  g('pk_lots_s').textContent  = rows.length+' lot'+(rows.length!==1?'s':'')+' shown';
+  g('pk_pend').textContent    = fmtKg(totPend);
+  g('pk_pend_s').textContent  = 'kg pending before packing';
+  g('pk_packed').textContent  = fmtKg(totPacked);
+  g('pk_packed_s').textContent= totBags+' bags entered';
+  g('pk_remain').textContent  = fmtKg(totRemain);
+  g('pk_remain_s').textContent= totRemain<=0?'All packed ✓':'kg still to pack';
+}
+
+function updatePacked(lotNo, field, val) {
+  if (!packedData[lotNo]) packedData[lotNo] = { bags:0, perBagKg:0 };
+  packedData[lotNo][field] = parseFloat(val)||0;
+  savePackedLocal();
+
+  // Recalculate that row live
+  const pd      = packedData[lotNo];
+  const stats   = getLotStats(lotNo);
+  const packed  = (pd.bags||0) * (pd.perBagKg||0);
+  const remain  = Math.max(0, stats.pendingQty - packed);
+  const packEl  = g('pk_packed_'+lotNo);
+  const remEl   = g('pk_remain_'+lotNo);
+  if (packEl) {
+    packEl.textContent = packed>0 ? fmtKg(packed) : '—';
+    packEl.style.color = packed>0 ? 'var(--green)' : 'var(--text3)';
+  }
+  if (remEl) {
+    remEl.textContent = fmtKg(remain);
+    remEl.style.color = remain<=0 ? 'var(--green)' : remain<=stats.pendingQty*0.1 ? 'var(--amber)' : 'var(--red)';
+  }
+  // Refresh totals
+  const allRows = [...g('packTbody').querySelectorAll('tr')];
+  // Re-read from packedData for totals
+  buildPackedYarnTotals();
+}
+
+function buildPackedYarnTotals() {
+  const lotNos = [...new Set(recv.map(r=>r.lotNo))];
+  let totPend=0, totBags=0, totPacked=0, totRemain=0;
+  lotNos.forEach(lotNo => {
+    const stats  = getLotStats(lotNo);
+    const pd     = packedData[lotNo]||{bags:0,perBagKg:0};
+    const packed = (pd.bags||0)*(pd.perBagKg||0);
+    totPend   += stats.pendingQty;
+    totBags   += pd.bags||0;
+    totPacked += packed;
+    totRemain += Math.max(0, stats.pendingQty-packed);
+  });
+  const tot = g('packTotalsRow');
+  if (tot && tot.style.display!=='none') {
+    g('pkTotPend').textContent   = fmtKg(totPend)+' kg';
+    g('pkTotBags').textContent   = totBags+' bags';
+    g('pkTotPacked').textContent = fmtKg(totPacked)+' kg';
+    g('pkTotRemain').textContent = fmtKg(totRemain)+' kg';
+    g('pk_packed').textContent   = fmtKg(totPacked);
+    g('pk_remain').textContent   = fmtKg(totRemain);
+  }
+}
+
+async function savePacked() {
+  savePackedLocal();
+  // Also sync to Google Sheets PackedYarn tab
+  if (!cfg.sid || cfg.sid==='YOUR_SPREADSHEET_ID_HERE') {
+    toast('✓ Packing saved locally', 'ok'); return;
+  }
+  const token = await getValidToken(); if (!token) { toast('✓ Packing saved locally','ok'); return; }
+  try {
+    const val = JSON.stringify(packedData);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent('PackedYarn!A1')}?valueInputOption=RAW`,
+      {
+        method:'PUT',
+        headers:{'Content-Type':'application/json', Authorization:'Bearer '+token},
+        body: JSON.stringify({ values:[['packed_data', val, new Date().toISOString()]] })
+      }
+    );
+    toast('✓ Packing data saved to Google Sheets', 'ok');
+  } catch(e) { toast('✓ Packing saved locally','ok'); }
+}
+
+async function loadPackedFromSheets() {
+  if (!cfg.sid || cfg.sid==='YOUR_SPREADSHEET_ID_HERE') return;
+  const token = await getValidToken(); if (!token) return;
+  try {
+    const r = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent('PackedYarn!A1:C1')}`,
+      { headers:{Authorization:'Bearer '+token} }
+    );
+    const d = await r.json();
+    if (d.values?.[0]?.[1]) {
+      packedData = JSON.parse(d.values[0][1]);
+      savePackedLocal();
+    }
+  } catch(e) { console.warn('loadPacked:', e); }
+}
+
 function toggleLotComplete(lotNo) {
   if (completedLots.has(lotNo)) {
     completedLots.delete(lotNo);
@@ -2794,11 +3295,12 @@ function go(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
   g('p-'+tab).classList.add('active');
-  const idx={recv:0,disp:1,lots:2,dash:3,prod:4}[tab];
+  const idx={recv:0,disp:1,lots:2,dash:3,prod:4,pack:5}[tab];
   document.querySelectorAll('.tb')[idx].classList.add('active');
   if(tab==='lots') buildLots();
   if(tab==='dash') buildDash();
   if(tab==='prod' && g('prodTbody').children.length===0) addProdRow();
+  if(tab==='pack') buildPackedYarn();
   // Auto-add first lot row when opening dispatch tab if empty
   if(tab==='disp' && g('lotRowsTbody').children.length===0) addLotRow();
 }
@@ -3457,6 +3959,32 @@ function downloadExcel(tab) {
         tds[21]?.textContent||''  // status
       ];
     }).filter(Boolean);
+
+  } else if (tab === 'pack') {
+    filename = `PackedYarn_${today()}.csv`;
+    headers = ['#','Lot No.','Company','Shade','Count','Double Lot',
+      'Recv (kg)','Return (kg)','Disp (kg)','Allowed Wastage (kg)','Pending Qty (kg)',
+      'No. of Bags','Per Bag (kg)','Packed Qty (kg)','Remaining (kg)'];
+    const lotNos = [...new Set(recv.map(r=>r.lotNo))];
+    let data = lotNos.map(lotNo=>{
+      const rr=recv.filter(r=>r.lotNo===lotNo);
+      const company=rr[0]?.company||'', shade=rr[0]?.shade||'', count=rr[0]?.count||'', altLot=rr[0]?.altLot||'';
+      const stats=getLotStats(lotNo);
+      const pd=packedData[lotNo]||{bags:0,perBagKg:0};
+      const packed=(pd.bags||0)*(pd.perBagKg||0);
+      const remaining=Math.max(0,stats.pendingQty-packed);
+      return{lotNo,company,shade,count,altLot,...stats,pd,packed,remaining};
+    });
+    const fCo=g('fPackCo').value, srch=g('srchPack').value.toLowerCase();
+    if(fCo) data=data.filter(r=>r.company===fCo);
+    if(srch) data=data.filter(r=>(r.lotNo+r.company).toLowerCase().includes(srch));
+    data.sort((a,b)=>b.pendingQty-a.pendingQty||a.lotNo.localeCompare(b.lotNo));
+    rows=data.map((r,i)=>[
+      i+1,r.lotNo,r.company,r.shade,r.count,r.altLot,
+      fmtKg(r.recvKg),fmtKg(r.returnKg),fmtKg(r.dispKg),
+      r.allowed>0?fmtKg(r.allowedWaste):'',fmtKg(r.pendingQty),
+      r.pd.bags||'',r.pd.perBagKg||'',fmtKg(r.packed),fmtKg(r.remaining)
+    ]);
   }
 
   // Build CSV string
@@ -3733,7 +4261,68 @@ function printTab(tab) {
       </table>
       ${cheeseSection}`;
 
+  } else if (tab === 'pack') {
+    title = 'Packed Yarn Report';
+    const fCo = g('fPackCo').value;
+    sub = [fCo||'All Companies', today()].join(' · ');
+    const lotNos = [...new Set(recv.map(r=>r.lotNo))];
+    let data = lotNos.map(lotNo=>{
+      const rr=recv.filter(r=>r.lotNo===lotNo);
+      const company=rr[0]?.company||'', shade=rr[0]?.shade||'', count=rr[0]?.count||'';
+      const stats=getLotStats(lotNo);
+      const pd=packedData[lotNo]||{bags:0,perBagKg:0};
+      const packed=(pd.bags||0)*(pd.perBagKg||0);
+      const remaining=Math.max(0,stats.pendingQty-packed);
+      return{lotNo,company,shade,count,...stats,pd,packed,remaining};
+    });
+    if(fCo) data=data.filter(r=>r.company===fCo);
+    data.sort((a,b)=>b.pendingQty-a.pendingQty);
+    const totPend=data.reduce((s,r)=>s+r.pendingQty,0);
+    const totPacked=data.reduce((s,r)=>s+r.packed,0);
+    const totRemain=data.reduce((s,r)=>s+r.remaining,0);
+    const totBags=data.reduce((s,r)=>s+(r.pd.bags||0),0);
+    html = `
+      <div class="print-summary-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="print-kpi"><div class="print-kpi-label">Total Lots</div><div class="print-kpi-val">${data.length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Pending Qty (kg)</div><div class="print-kpi-val" style="font-size:16px;">${fmtKg(totPend)}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Packed (kg)</div><div class="print-kpi-val" style="font-size:16px;">${fmtKg(totPacked)}</div><div class="print-kpi-sub">${totBags} bags</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Remaining (kg)</div><div class="print-kpi-val" style="font-size:16px;">${fmtKg(totRemain)}</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>Lot No.</th><th>Company</th><th>Shade</th><th>Count</th>
+          <th class="r">Recv (kg)</th><th class="r">Return (kg)</th><th class="r">Disp (kg)</th>
+          <th class="r">Allowed Wastage</th><th class="r">Pending (kg)</th>
+          <th class="r">Bags</th><th class="r">Per Bag (kg)</th>
+          <th class="r">Packed (kg)</th><th class="r">Remaining (kg)</th>
+        </tr></thead>
+        <tbody>
+          ${data.map((r,i)=>`<tr>
+            <td>${i+1}</td>
+            <td><strong>${r.lotNo}</strong></td>
+            <td>${r.company}</td><td>${r.shade||'—'}</td><td>${r.count||'—'}</td>
+            <td class="r">${fmtKg(r.recvKg)}</td>
+            <td class="r">${r.returnKg>0?'−'+fmtKg(r.returnKg):'—'}</td>
+            <td class="r">${fmtKg(r.dispKg)}</td>
+            <td class="r">${r.allowed>0?fmtKg(r.allowedWaste)+' ('+r.allowed+'%)':'—'}</td>
+            <td class="r"><strong>${fmtKg(r.pendingQty)}</strong></td>
+            <td class="r">${r.pd.bags||'—'}</td>
+            <td class="r">${r.pd.perBagKg||'—'}</td>
+            <td class="r"><strong>${r.packed>0?fmtKg(r.packed):'—'}</strong></td>
+            <td class="r" style="color:${r.remaining<=0?'#1a7a50':'#c0392b'}"><strong>${fmtKg(r.remaining)}</strong></td>
+          </tr>`).join('')}
+          <tr class="print-count-row">
+            <td colspan="9" style="text-align:right;padding-right:12px;">TOTAL</td>
+            <td class="r">${fmtKg(totPend)}</td>
+            <td class="r">${totBags}</td>
+            <td class="r"></td>
+            <td class="r">${fmtKg(totPacked)}</td>
+            <td class="r">${fmtKg(totRemain)}</td>
+          </tr>
+        </tbody>
+      </table>`;
   }
+
   const filterInfo = sub ? `<div class="print-filters"><span>📋 <strong>Report:</strong> ${title}</span><span>🏭 <strong>Unit:</strong> ${unitName}</span><span>📅 <strong>Generated:</strong> ${printDate} ${printTime}</span>${sub!=='All Lots'&&sub?`<span>🔍 <strong>Filters:</strong> ${sub}</span>`:''}</div>` : '';
 
   const fullDoc = `
