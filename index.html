@@ -178,6 +178,7 @@ th.num{text-align:right;}
     <button class="btn btn-sm" onclick="openModal('masterModal')" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);">🗂 Master Data</button>
     <button class="btn btn-sm" onclick="openModal('cfgModal')" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);">⚙ Settings</button>
     <button class="btn btn-sm" onclick="syncNow()" style="background:rgba(91,159,252,.25);color:#a8c8ff;border:1px solid rgba(91,159,252,.3);">↺ Sync</button>
+    <button class="btn btn-sm" onclick="cleanDuplicatesFromSheet()" style="background:rgba(192,57,43,.2);color:#f87171;border:1px solid rgba(192,57,43,.3);" title="Remove duplicate entries from Google Sheet">🧹 Clean Dupes</button>
   </div>
 </div>
 
@@ -1740,20 +1741,28 @@ async function syncSheets() {
       return;
     }
     if (rj.values?.length) {
+      const seen = new Set();
       recv = rj.values.map(row => ({
         id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',altLot:row[5]||'',
         shade:row[6]||'',count:row[7]||'',tpi:row[8]||'',blend:row[9]||'',bags:+row[10]||0,weight:+row[11]||0,
         rate:+row[12]||0,vehicle:row[13]||'',status:row[14]||'Received',remarks:row[15]||'',
         allowedShortage:+row[17]||0,singleConeTip:row[18]||'',doubleConeTip:row[19]||'',
         shadeCard:row[20]||'',paperCone:+row[21]||0
-      }));
+      })).filter(r => {
+        if(!r.id || seen.has(r.id)) return false;
+        seen.add(r.id); return true;
+      });
     }
     if (dj.values?.length) {
+      const seen = new Set();
       disp = dj.values.map(row => ({
         id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',
         shade:row[5]||'',count:row[6]||'',tpi:row[7]||'',blend:row[8]||'',bags:+row[9]||0,weight:+row[10]||0,
         rate:+row[11]||0,form:row[12]||'D',plant:row[13]||'',vehicle:row[14]||'',remark:row[15]||''
-      }));
+      })).filter(d => {
+        if(!d.id || seen.has(d.id)) return false;
+        seen.add(d.id); return true;
+      });
     }
     saveLocal(); renderAll(); setGS('on', 'Synced ✓');
   } catch(e) {
@@ -1763,6 +1772,75 @@ async function syncSheets() {
   }
 }
 function syncNow() { syncSheets(); }
+
+// Remove duplicate rows from Sheet — keeps first occurrence of each ID, deletes the rest
+async function cleanDuplicatesFromSheet() {
+  if (!cfg.sid) { toast('Not connected to Sheet', 'err'); return; }
+  const token = await getValidToken();
+  if (!token) { toast('Please sign in first', 'err'); return; }
+
+  toast('Scanning for duplicates…', '');
+  let totalDeleted = 0;
+
+  for (const tabName of ['Receipts', 'Dispatch']) {
+    try {
+      // Read column A
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent(tabName+'!A:A')}`,
+        { headers: { Authorization: 'Bearer ' + token } }
+      );
+      const json = await res.json();
+      if (!json.values) continue;
+
+      // Find duplicate row indices (keep first, delete rest)
+      const seen = new Set();
+      const toDelete = [];
+      json.values.forEach((r, i) => {
+        if (i === 0) return; // skip header row (row 0 = row 1 in sheet = header)
+        const id = r[0];
+        if (!id) return;
+        if (seen.has(id)) toDelete.push(i); // duplicate — mark for deletion
+        else seen.add(id);
+      });
+
+      if (!toDelete.length) continue;
+
+      // Get sheetId
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}?fields=sheets.properties`,
+        { headers: { Authorization: 'Bearer ' + token } }
+      );
+      const meta = await metaRes.json();
+      const sheet = meta.sheets?.find(s => s.properties.title === tabName);
+      if (!sheet) continue;
+      const sheetId = sheet.properties.sheetId;
+
+      // Delete from bottom to top to preserve row indices
+      const requests = toDelete.sort((a,b)=>b-a).map(rowIdx => ({
+        deleteDimension: {
+          range: { sheetId, dimension:'ROWS', startIndex: rowIdx, endIndex: rowIdx+1 }
+        }
+      }));
+
+      const delRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}:batchUpdate`,
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json', Authorization:'Bearer '+token},
+          body: JSON.stringify({ requests })
+        }
+      );
+      if (delRes.ok) totalDeleted += toDelete.length;
+    } catch(e) { console.warn('cleanDuplicates:', e); }
+  }
+
+  if (totalDeleted > 0) {
+    toast(`✓ Removed ${totalDeleted} duplicate row${totalDeleted>1?'s':''} from Sheet. Syncing…`, 'ok');
+    setTimeout(() => syncSheets(), 1500);
+  } else {
+    toast('✓ No duplicates found in Sheet', 'ok');
+  }
+}
 
 // ═══════════════════════════════════════════════
 // DUPLICATE CHECK
@@ -3384,14 +3462,65 @@ function del(type,id){
   _delCtx={type,id};
   g('delModal').classList.add('open');
 }
-function confirmDel(){
-  if(!_delCtx)return;
-  if(_delCtx.type==='recv')recv=recv.filter(r=>r.id!==_delCtx.id);
-  else disp=disp.filter(d=>d.id!==_delCtx.id);
-  saveLocal();renderAll();
+async function confirmDel(){
+  if(!_delCtx) return;
+  const {type, id} = _delCtx;
+  // Remove from local immediately
+  if(type==='recv') recv = recv.filter(r=>r.id!==id);
+  else disp = disp.filter(d=>d.id!==id);
+  saveLocal(); renderAll();
   g('delModal').classList.remove('open');
-  _delCtx=null;
-  toast('Entry deleted.','ok');
+  _delCtx = null;
+  toast('Deleting…','');
+
+  // Also delete from Google Sheet by finding and clearing the row
+  const tabName = type==='recv' ? 'Receipts' : 'Dispatch';
+  const deleted = await deleteSheetRowById(tabName, id);
+  toast(deleted ? '✓ Entry deleted from Sheet' : '✓ Deleted locally (Sheet update failed — re-sync to fix)', deleted?'ok':'');
+}
+
+async function deleteSheetRowById(tabName, rowId) {
+  if (!cfg.sid) return false;
+  const token = await getValidToken(); if (!token) return false;
+  try {
+    // Step 1: Find the row number by searching column A for the ID
+    const findUrl = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent(tabName+'!A:A')}`;
+    const res = await fetch(findUrl, { headers: { Authorization: 'Bearer ' + token } });
+    const json = await res.json();
+    if (!json.values) return false;
+
+    // Find ALL rows matching this ID (handles duplicates too)
+    const matchingRows = [];
+    json.values.forEach((r, i) => { if (r[0] === rowId) matchingRows.push(i); });
+    if (!matchingRows.length) return false;
+
+    // Step 2: Get spreadsheet metadata to find sheetId
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}?fields=sheets.properties`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const meta = await metaRes.json();
+    const sheet = meta.sheets?.find(s => s.properties.title === tabName);
+    if (!sheet) return false;
+    const sheetId = sheet.properties.sheetId;
+
+    // Step 3: Delete all matching rows via batchUpdate
+    // Delete from bottom to top so row indices stay valid
+    const requests = matchingRows.sort((a,b)=>b-a).map(rowIdx => ({
+      deleteDimension: {
+        range: { sheetId, dimension:'ROWS', startIndex: rowIdx, endIndex: rowIdx+1 }
+      }
+    }));
+    const delRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ requests })
+      }
+    );
+    return delRes.ok;
+  } catch(e) { console.warn('deleteSheetRowById:', e); return false; }
 }
 function cancelDel(){
   g('delModal').classList.remove('open');
