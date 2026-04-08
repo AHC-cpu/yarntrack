@@ -1676,6 +1676,30 @@ async function appendRow(tabName, rowData) {
     return r.ok;
   } catch(e) { return false; }
 }
+
+// Find a row in a sheet by matching column A (ID) and update all its columns
+async function updateSheetRow(tabName, rowId, rowData) {
+  if (!cfg.sid) return false;
+  const token = await getValidToken(); if (!token) return false;
+  try {
+    // First find the row number by reading column A
+    const findUrl = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent(tabName+'!A:A')}`;
+    const res = await fetch(findUrl, { headers: { Authorization: 'Bearer ' + token } });
+    const json = await res.json();
+    if (!json.values) return false;
+    const rowIndex = json.values.findIndex(r => r[0] === rowId);
+    if (rowIndex < 0) return false; // row not found — fallback
+    const sheetRow = rowIndex + 1; // 1-based
+    const range = `${tabName}!A${sheetRow}`;
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+    const r = await fetch(updateUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ values: [rowData] })
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
 async function syncSheets() {
   if (!cfg.sid || cfg.sid === 'YOUR_SPREADSHEET_ID_HERE') {
     setGS('err', 'Sheet ID not set'); return;
@@ -2267,7 +2291,11 @@ function checkChallanUnique() {
 // ═══════════════════════════════════════════════
 // SAVE DISPATCH (multi-lot)
 // ═══════════════════════════════════════════════
+let _dispatchSaving = false;
+
 async function saveDispatch() {
+  if (_dispatchSaving) return; // prevent double-click duplicate
+
   const date=g('d_date').value, challan=g('d_challan').value.trim(),
         co=g('d_co').value, form=g('d_form').value,
         vehicle=g('d_vehicle').value.trim(), plant=g('d_plant').value.trim(),
@@ -2308,17 +2336,25 @@ async function saveDispatch() {
   });
   if (hasError) { toast('Fill Lot No., Bags and Weight for all rows (highlighted in red)','err'); return; }
 
+  _dispatchSaving = true;
   const btn=g('btnD'); btn.disabled=true; g('dSt').innerHTML='<span class="spin"></span> Saving…';
-  let savedCount=0;
-  for (const en of entries) {
-    const e = {
-      id:'D'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-      date, challan, company:co, lotNo:en.lot,
-      shade:en.shade, count:en.count, tpi:en.tpi, blend:en.blend,
-      bags:en.bags, weight:en.wt, rate:en.rate,
-      form, plant, vehicle, remark
-    };
-    disp.push(e);
+
+  // Build all entry objects first, then push to local array, then save to sheets
+  const newEntries = entries.map(en => ({
+    id:'D'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    date, challan, company:co, lotNo:en.lot,
+    shade:en.shade, count:en.count, tpi:en.tpi, blend:en.blend,
+    bags:en.bags, weight:en.wt, rate:en.rate,
+    form, plant, vehicle, remark
+  }));
+
+  // Push all to local at once
+  newEntries.forEach(e => disp.push(e));
+  saveLocal();
+
+  // Then save to sheets
+  let savedCount = 0;
+  for (const e of newEntries) {
     const row=[e.id,e.date,e.challan,e.company,e.lotNo,e.shade,e.count,e.tpi,e.blend,
       e.bags,e.weight,e.rate,e.form,e.plant,e.vehicle,e.remark,new Date().toISOString()];
     await appendRow('Dispatch', row);
@@ -2326,8 +2362,10 @@ async function saveDispatch() {
   }
   await appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','ADD',
     `Challan ${challan} | ${co} | ${entries.length} lots | ${entries.reduce((s,e)=>s+e.wt,0).toFixed(2)}kg`]);
-  saveLocal(); renderAll(); clearForm('disp');
+
+  renderAll(); clearForm('disp');
   btn.disabled=false; g('dSt').textContent='';
+  _dispatchSaving = false;
   toast(`✓ Saved ${savedCount} lot${savedCount>1?'s':''} under Challan ${challan}`, 'ok');
 }
 
@@ -2504,9 +2542,8 @@ function renderD() {
   if(s) rows=rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(s));
   if(co) rows=rows.filter(r=>r.company===co);
   if(fm) rows=rows.filter(r=>r.form===fm);
-  rows.sort((a,b)=>b.date.localeCompare(a.date));
+  rows.sort((a,b) => (parseInt(b.challan)||0) - (parseInt(a.challan)||0));
   const tb=g('tbD'), em=g('emD');
-  // Update header
   const thead = tb.closest('table')?.querySelector('thead tr');
   if(thead) thead.innerHTML = [
     dco('num')    && '<th>#</th>',
@@ -3204,7 +3241,15 @@ function saveEdit(type) {
       paperCone:       parseFloat(g('er_papercone').value)||0
     };
     saveLocal(); renderAll();
-    appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','EDIT',`Lot ${recv[idx].lotNo} | ${recv[idx].company}`]);
+    // Update Sheet row
+    const r = recv[idx];
+    const sheetRow = [r.id,r.date,r.challan,r.company,r.lotNo,r.altLot,r.shade,r.count,r.tpi,r.blend,
+      r.bags,r.weight,r.rate,r.vehicle,r.status,r.remarks,new Date().toISOString(),r.allowedShortage,
+      r.singleConeTip,r.doubleConeTip,r.shadeCard,r.paperCone];
+    updateSheetRow('Receipts', r.id, sheetRow).then(ok => {
+      if (!ok) appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','EDIT-FAIL',`ID ${r.id}`]);
+    });
+    appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','EDIT',`Lot ${r.lotNo} | ${r.company}`]);
     closeModal('editRecvModal');
     toast('✓ Receipt updated', 'ok');
   } else {
@@ -3230,9 +3275,16 @@ function saveEdit(type) {
       remark:  g('ed_remark').value.trim()
     };
     saveLocal(); renderAll();
-    appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','EDIT',`Lot ${disp[idx].lotNo} | ${disp[idx].company}`]);
+    // Update Sheet row
+    const d = disp[idx];
+    const sheetRow = [d.id,d.date,d.challan,d.company,d.lotNo,d.shade,d.count,d.tpi,d.blend,
+      d.bags,d.weight,d.rate,d.form,d.plant,d.vehicle,d.remark,new Date().toISOString()];
+    updateSheetRow('Dispatch', d.id, sheetRow).then(ok => {
+      if (!ok) appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','EDIT-FAIL',`ID ${d.id}`]);
+    });
+    appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','EDIT',`Challan ${d.challan} | Lot ${d.lotNo}`]);
     closeModal('editDispModal');
-    toast('✓ Dispatch entry updated', 'ok');
+    toast('✓ Dispatch updated & saved to Sheet', 'ok');
   }
 }
 // ═══════════════════════════════════════════════
