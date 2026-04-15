@@ -253,6 +253,12 @@ th.num{text-align:right;}
     </div>
     <div class="grid g2" style="margin-bottom:16px;">
       <div class="fg"><label>Remarks</label><input type="text" id="r_remarks" placeholder="Optional"></div>
+      <div class="fg"><label>Item Type</label>
+        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
+          <input type="checkbox" id="r_ispacking" style="width:auto;accent-color:var(--purple);">
+          <span id="r_ispacking_lbl" style="color:var(--text2);">📦 Mark as Packing Material</span>
+        </label>
+      </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button class="btn btn-green" id="btnR" onclick="saveReceive()">✓ Save Receipt</button>
@@ -319,13 +325,17 @@ th.num{text-align:right;}
       </div>
       <div class="fg"><label>Vehicle No.</label><input type="text" id="d_vehicle" placeholder="Truck no."></div>
     </div>
-    <div class="grid g3" style="margin-bottom:16px;">
+    <div class="grid g4" style="margin-bottom:16px;">
       <div class="fg"><label>Plant</label><input type="text" id="d_plant" placeholder="Plant 1 / 2 / 3"></div>
       <div class="fg"><label>Job Work Rate (₹/kg) <small style="color:var(--text3);font-size:9px;text-transform:none;">(applied to all lots unless overridden)</small></label><input type="number" id="d_rate" placeholder="61.87" step="0.01"></div>
       <div class="fg"><label>Remark</label><input type="text" id="d_remark" placeholder="Optional"></div>
+      <div class="fg"><label>Item Type</label>
+        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
+          <input type="checkbox" id="d_ispacking" style="width:auto;accent-color:var(--purple);">
+          <span style="color:var(--text2);">📦 Packing Material</span>
+        </label>
+      </div>
     </div>
-
-    <!-- LOT ROWS -->
     <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:10px;">
       Lots in this Challan
       <button class="btn btn-ghost btn-sm" onclick="addLotRow()" id="btnAddRow">+ Add Lot</button>
@@ -903,10 +913,14 @@ th.num{text-align:right;}
         <select id="er_status"><option value="Received">Received</option><option value="In Process">In Process</option><option value="Hold">Hold</option></select>
       </div>
     </div>
-    <div class="fg" style="margin-bottom:14px;"><label>Remarks</label><input type="text" id="er_remarks"></div>
-    <div class="mfooter">
-      <button class="btn btn-ghost" onclick="closeModal('editRecvModal')">Cancel</button>
-      <button class="btn btn-amber" onclick="saveEdit('recv')">✓ Save Changes</button>
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;">
+      <div class="fg" style="flex:1"><label>Remarks</label><input type="text" id="er_remarks"></div>
+      <div class="fg"><label>Item Type</label>
+        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
+          <input type="checkbox" id="er_ispacking" style="width:auto;accent-color:var(--purple);">
+          <span style="color:var(--text2);">📦 Packing Material</span>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -940,6 +954,12 @@ th.num{text-align:right;}
       <div class="fg"><label>Plant</label><input type="text" id="ed_plant"></div>
       <div class="fg"><label>Vehicle No.</label><input type="text" id="ed_vehicle"></div>
       <div class="fg"><label>Remark</label><input type="text" id="ed_remark"></div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
+        <input type="checkbox" id="ed_ispacking" style="width:auto;accent-color:var(--purple);">
+        <span style="color:var(--text2);">📦 Packing Material (exclude from yarn stock totals)</span>
+      </label>
     </div>
     <div class="mfooter">
       <button class="btn btn-ghost" onclick="closeModal('editDispModal')">Cancel</button>
@@ -1574,8 +1594,8 @@ function saveLocal() {
 // ═══════════════════════════════════════════════
 // GOOGLE SHEETS — OAuth token based (no API key)
 // ═══════════════════════════════════════════════
-const R_HDR_LABELS = ['ID','Date','Challan No.','Company','Lot No.','Double Lot No.','Shade/Colour','Count','TPI','Blend','No. of Bags','Weight (kg)','JW Rate (₹/kg)','Vehicle No.','Status','Remarks','Timestamp','Allowed Shortage %','Single Cone Tip','Double Cone Tip','Shade Card No.','Paper Cone Received'];
-const D_HDR_LABELS = ['ID','Date','Challan No.','Company','Lot No.','Shade/Colour','Count','TPI','Blend','No. of Bags','Weight (kg)','JW Rate (₹/kg)','Form (D/R/S)','Plant','Vehicle No.','Remark','Timestamp'];
+const R_HDR_LABELS = ['ID','Date','Challan No.','Company','Lot No.','Double Lot No.','Shade/Colour','Count','TPI','Blend','No. of Bags','Weight (kg)','JW Rate (₹/kg)','Vehicle No.','Status','Remarks','Timestamp','Allowed Shortage %','Single Cone Tip','Double Cone Tip','Shade Card No.','Paper Cone Received','Is Packing Material'];
+const D_HDR_LABELS = ['ID','Date','Challan No.','Company','Lot No.','Shade/Colour','Count','TPI','Blend','No. of Bags','Weight (kg)','JW Rate (₹/kg)','Form (D/R/S)','Plant','Vehicle No.','Remark','Timestamp','Is Packing Material'];
 const CH_HDR_LABELS = ['Timestamp','Tab','Action','Detail'];
 
 async function ensureTabs() {
@@ -1747,7 +1767,8 @@ async function syncSheets() {
         shade:row[6]||'',count:row[7]||'',tpi:row[8]||'',blend:row[9]||'',bags:+row[10]||0,weight:+row[11]||0,
         rate:+row[12]||0,vehicle:row[13]||'',status:row[14]||'Received',remarks:row[15]||'',
         allowedShortage:+row[17]||0,singleConeTip:row[18]||'',doubleConeTip:row[19]||'',
-        shadeCard:row[20]||'',paperCone:+row[21]||0
+        shadeCard:row[20]||'',paperCone:+row[21]||0,
+        isPacking: row[22]==='true'||row[22]===true||row[22]==='1'||row[22]==='yes'
       })).filter(r => {
         if(!r.id || seen.has(r.id)) return false;
         seen.add(r.id); return true;
@@ -1758,7 +1779,8 @@ async function syncSheets() {
       disp = dj.values.map(row => ({
         id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',
         shade:row[5]||'',count:row[6]||'',tpi:row[7]||'',blend:row[8]||'',bags:+row[9]||0,weight:+row[10]||0,
-        rate:+row[11]||0,form:row[12]||'D',plant:row[13]||'',vehicle:row[14]||'',remark:row[15]||''
+        rate:+row[11]||0,form:row[12]||'D',plant:row[13]||'',vehicle:row[14]||'',remark:row[15]||'',
+        isPacking: row[17]==='true'||row[17]===true||row[17]==='1'||row[17]==='yes'
       })).filter(d => {
         if(!d.id || seen.has(d.id)) return false;
         seen.add(d.id); return true;
@@ -2101,12 +2123,13 @@ async function saveReceive(skipDupCheck=false) {
     doubleConeTip:g('r_doubleconetip').value.trim(),
     shadeCard:g('r_shadecard').value.trim(),
     paperCone:parseFloat(g('r_papercone').value)||0,
-    status:g('r_status').value, remarks:g('r_remarks').value.trim()
+    status:g('r_status').value, remarks:g('r_remarks').value.trim(),
+    isPacking: g('r_ispacking').checked
   };
   recv.push(e); saveLocal();
   const row=[e.id,e.date,e.challan,e.company,e.lotNo,e.altLot,e.shade,e.count,e.tpi,e.blend,
     e.bags,e.weight,e.rate,e.vehicle,e.status,e.remarks,new Date().toISOString(),e.allowedShortage,
-    e.singleConeTip,e.doubleConeTip,e.shadeCard,e.paperCone];
+    e.singleConeTip,e.doubleConeTip,e.shadeCard,e.paperCone,e.isPacking?'true':'false'];
   const ok = await appendRow('Receipts', row);
   await appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','ADD',
     `Lot ${e.lotNo} | ${e.company} | ${e.weight}kg | ${e.bags}bags | ${date}`]);
@@ -2240,11 +2263,11 @@ function updateRowPending(idx) {
   if (!match) return;
   const enteredWt = parseFloat(g(`rl_wt_${idx}`)?.value)||0;
   const stats = (() => {
-    const totalRecv   = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>s+r.weight,0);
-    const allowedPct  = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>Math.max(s,r.allowedShortage||0),0);
+    const totalRecv   = recv.filter(r=>r.lotNo===match.lotNo && !r.isPacking).reduce((s,r)=>s+r.weight,0);
+    const allowedPct  = recv.filter(r=>r.lotNo===match.lotNo && !r.isPacking).reduce((s,r)=>Math.max(s,r.allowedShortage||0),0);
     const allowedWaste= totalRecv*(allowedPct/100);
-    const totalDisp   = disp.filter(d=>d.lotNo===match.lotNo&&d.form!=='R').reduce((s,d)=>s+d.weight,0);
-    const totalReturn = disp.filter(d=>d.lotNo===match.lotNo&&d.form==='R').reduce((s,d)=>s+d.weight,0);
+    const totalDisp   = disp.filter(d=>d.lotNo===match.lotNo&&d.form!=='R'&&!d.isPacking).reduce((s,d)=>s+d.weight,0);
+    const totalReturn = disp.filter(d=>d.lotNo===match.lotNo&&d.form==='R'&&!d.isPacking).reduce((s,d)=>s+d.weight,0);
     const base = Math.max(0, totalRecv-allowedWaste-totalDisp-totalReturn);
     return { base, allowedPct };
   })();
@@ -2318,11 +2341,11 @@ function onRowLotInput(idx) {
     if(coEl && !coEl.value && match.company) setSelVal('d_co', match.company);
 
     // ── PENDING QTY CALCULATION ──
-    const totalRecv   = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>s+r.weight,0);
-    const allowedPct  = recv.filter(r=>r.lotNo===match.lotNo).reduce((s,r)=>Math.max(s,r.allowedShortage||0),0);
+    const totalRecv   = recv.filter(r=>r.lotNo===match.lotNo && !r.isPacking).reduce((s,r)=>s+r.weight,0);
+    const allowedPct  = recv.filter(r=>r.lotNo===match.lotNo && !r.isPacking).reduce((s,r)=>Math.max(s,r.allowedShortage||0),0);
     const allowedWaste= totalRecv * (allowedPct/100);
-    const totalDisp   = disp.filter(d=>d.lotNo===match.lotNo && d.form!=='R').reduce((s,d)=>s+d.weight,0);
-    const totalReturn = disp.filter(d=>d.lotNo===match.lotNo && d.form==='R').reduce((s,d)=>s+d.weight,0);
+    const totalDisp   = disp.filter(d=>d.lotNo===match.lotNo && d.form!=='R' && !d.isPacking).reduce((s,d)=>s+d.weight,0);
+    const totalReturn = disp.filter(d=>d.lotNo===match.lotNo && d.form==='R' && !d.isPacking).reduce((s,d)=>s+d.weight,0);
     const pending     = Math.max(0, totalRecv - allowedWaste - totalDisp - totalReturn);
 
     if (pendingCell) {
@@ -2418,12 +2441,13 @@ async function saveDispatch() {
   const btn=g('btnD'); btn.disabled=true; g('dSt').innerHTML='<span class="spin"></span> Saving…';
 
   // Build all entry objects first, then push to local array, then save to sheets
+  const isPacking = g('d_ispacking').checked;
   const newEntries = entries.map(en => ({
     id:'D'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
     date, challan, company:co, lotNo:en.lot,
     shade:en.shade, count:en.count, tpi:en.tpi, blend:en.blend,
     bags:en.bags, weight:en.wt, rate:en.rate,
-    form, plant, vehicle, remark
+    form, plant, vehicle, remark, isPacking
   }));
 
   // Push all to local at once
@@ -2434,7 +2458,8 @@ async function saveDispatch() {
   let savedCount = 0;
   for (const e of newEntries) {
     const row=[e.id,e.date,e.challan,e.company,e.lotNo,e.shade,e.count,e.tpi,e.blend,
-      e.bags,e.weight,e.rate,e.form,e.plant,e.vehicle,e.remark,new Date().toISOString()];
+      e.bags,e.weight,e.rate,e.form,e.plant,e.vehicle,e.remark,new Date().toISOString(),
+      e.isPacking?'true':'false'];
     await appendRow('Dispatch', row);
     savedCount++;
   }
@@ -2546,11 +2571,13 @@ function renderR() {
   ].filter(Boolean).join('');
   if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
   tb.innerHTML=rows.map((r,i)=>{
+    const packBadge = r.isPacking ? ' <span style="font-size:9px;background:#f3f0ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:10px;padding:1px 6px;font-weight:600;">📦 PKG</span>' : '';
+    const rowStyle = r.isPacking ? 'background:rgba(109,40,217,.04);' : '';
     const cells = [
       rcv('num')    && `<td style="color:var(--text3)">${i+1}</td>`,
       rcv('date')   && `<td>${r.date}</td>`,
       rcv('challan')&& `<td style="color:var(--text3)">${r.challan}</td>`,
-      rcv('company')&& `<td style="font-weight:500">${r.company}</td>`,
+      rcv('company')&& `<td style="font-weight:500">${r.company}${packBadge}</td>`,
       rcv('lotNo')  && `<td style="color:var(--blue);font-weight:600">${r.lotNo}</td>`,
       rcv('altLot') && `<td style="color:var(--text3)">${r.altLot||'—'}</td>`,
       rcv('shade')  && `<td>${r.shade||'—'}</td>`,
@@ -2567,7 +2594,7 @@ function renderR() {
       rcv('status') && `<td>${sBadge(r.status)}</td>`,
       rcv('actions')&& `<td style="display:flex;gap:4px;"><button class="btn btn-ghost btn-sm" onclick="openEditModal('recv','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button><button class="btn btn-ghost btn-sm" onclick="del('recv','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button></td>`,
     ].filter(Boolean).join('');
-    return `<tr>${cells}</tr>`;
+    return `<tr style="${rowStyle}">${cells}</tr>`;
   }).join('');
 }
 
@@ -2644,11 +2671,13 @@ function renderD() {
   if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
   tb.innerHTML=rows.map((r,i)=>{
     const totalVal = (r.weight||0)*(r.rate||0);
+    const packBadge = r.isPacking ? ' <span style="font-size:9px;background:#f3f0ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:10px;padding:1px 6px;font-weight:600;">📦 PKG</span>' : '';
+    const rowStyle = r.isPacking ? 'background:rgba(109,40,217,.04);' : '';
     const cells = [
       dco('num')    && `<td style="color:var(--text3)">${i+1}</td>`,
       dco('date')   && `<td>${r.date}</td>`,
       dco('challan')&& `<td style="color:var(--text3)">${r.challan}</td>`,
-      dco('company')&& `<td style="font-weight:500">${r.company}</td>`,
+      dco('company')&& `<td style="font-weight:500">${r.company}${packBadge}</td>`,
       dco('lotNo')  && `<td style="color:var(--blue);font-weight:600">${r.lotNo}</td>`,
       dco('shade')  && `<td>${r.shade||'—'}</td>`,
       dco('count')  && `<td><span class="badge b-blue">${r.count||'—'}</span></td>`,
@@ -2662,7 +2691,7 @@ function renderD() {
       dco('plant')  && `<td style="color:var(--text3)">${r.plant||'—'}</td>`,
       dco('actions')&& `<td style="display:flex;gap:4px;"><button class="btn btn-ghost btn-sm" onclick="openEditModal('disp','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button><button class="btn btn-ghost btn-sm" onclick="del('disp','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button></td>`,
     ].filter(Boolean).join('');
-    return `<tr>${cells}</tr>`;
+    return `<tr style="${rowStyle}">${cells}</tr>`;
   }).join('');
 }
 
@@ -2745,8 +2774,8 @@ function buildLots() {
         cnt=g('fLCnt').value, tpi=g('fLTpi').value, shd=g('fLShd').value;
   const lots={};
 
-  // Build from receipts
-  recv.forEach(r=>{
+  // Build from receipts (exclude packing material)
+  recv.filter(r=>!r.isPacking).forEach(r=>{
     if(!r.lotNo) return;
     if(!lots[r.lotNo]) lots[r.lotNo]={
       lotNo:r.lotNo, altLot:r.altLot||'', company:r.company, shade:r.shade,
@@ -2769,7 +2798,8 @@ function buildLots() {
   });
 
   // Build from dispatches — split R-Return vs D/S
-  disp.forEach(d=>{
+  // Build from dispatches (exclude packing material)
+  disp.filter(d=>!d.isPacking).forEach(d=>{
     if(!d.lotNo) return;
     if(!lots[d.lotNo]) lots[d.lotNo]={
       lotNo:d.lotNo, altLot:'', company:d.company, shade:d.shade,
@@ -2932,12 +2962,12 @@ function savePackedLocal() {
 }
 
 function getLotStats(lotNo) {
-  const recvRows  = recv.filter(r => r.lotNo === lotNo);
+  const recvRows  = recv.filter(r => r.lotNo === lotNo && !r.isPacking);
   const recvKg    = recvRows.reduce((s,r) => s+r.weight, 0);
   const recvBags  = recvRows.reduce((s,r) => s+r.bags, 0);
   const allowed   = recvRows.reduce((s,r) => Math.max(s, r.allowedShortage||0), 0);
-  const returnKg  = disp.filter(d => d.lotNo===lotNo && d.form==='R').reduce((s,d) => s+d.weight, 0);
-  const dispKg    = disp.filter(d => d.lotNo===lotNo && d.form!=='R').reduce((s,d) => s+d.weight, 0);
+  const returnKg  = disp.filter(d => d.lotNo===lotNo && d.form==='R' && !d.isPacking).reduce((s,d) => s+d.weight, 0);
+  const dispKg    = disp.filter(d => d.lotNo===lotNo && d.form!=='R' && !d.isPacking).reduce((s,d) => s+d.weight, 0);
   const allowedWaste = recvKg * (allowed/100);
   const pendingQty   = Math.max(0, recvKg - returnKg - dispKg - allowedWaste);
   return { recvKg, recvBags, returnKg, dispKg, allowedWaste, allowed, pendingQty };
@@ -3155,6 +3185,9 @@ function buildDash() {
   const df=dateF.dash;
   if(df==='all'&&(g('dash_from')?.value||g('dash_to')?.value)) dateF.dash='custom';
   let rr=byDate([...recv],'dash'), dd=byDate([...disp],'dash');
+  // Exclude packing material from yarn stock calculations
+  rr = rr.filter(r=>!r.isPacking);
+  dd = dd.filter(d=>!d.isPacking);
   const cnt=g('df_cnt').value, tpi=g('df_tpi').value, shd=g('df_shd').value, co=g('df_co').value, bld=g('df_bld').value;
   if(cnt){rr=rr.filter(r=>r.count===cnt);dd=dd.filter(d=>d.count===cnt);}
   if(tpi){rr=rr.filter(r=>r.tpi===tpi);dd=dd.filter(d=>d.tpi===tpi);}
@@ -3259,6 +3292,7 @@ function openEditModal(type, id) {
     g('er_vehicle').value       = r.vehicle||'';
     g('er_status').value        = r.status||'Received';
     g('er_remarks').value       = r.remarks||'';
+    g('er_ispacking').checked   = r.isPacking||false;
     g('er_singleconetip').value = r.singleConeTip||'';
     g('er_doubleconetip').value = r.doubleConeTip||'';
     g('er_shadecard').value     = r.shadeCard||'';
@@ -3286,6 +3320,7 @@ function openEditModal(type, id) {
     g('ed_plant').value   = d.plant||'';
     g('ed_vehicle').value = d.vehicle||'';
     g('ed_remark').value  = d.remark||'';
+    g('ed_ispacking').checked = d.isPacking||false;
     openModal('editDispModal');
   }
 }
@@ -3316,14 +3351,15 @@ function saveEdit(type) {
       singleConeTip:   g('er_singleconetip').value.trim(),
       doubleConeTip:   g('er_doubleconetip').value.trim(),
       shadeCard:       g('er_shadecard').value.trim(),
-      paperCone:       parseFloat(g('er_papercone').value)||0
+      paperCone:       parseFloat(g('er_papercone').value)||0,
+      isPacking:       g('er_ispacking').checked
     };
     saveLocal(); renderAll();
     // Update Sheet row
     const r = recv[idx];
     const sheetRow = [r.id,r.date,r.challan,r.company,r.lotNo,r.altLot,r.shade,r.count,r.tpi,r.blend,
       r.bags,r.weight,r.rate,r.vehicle,r.status,r.remarks,new Date().toISOString(),r.allowedShortage,
-      r.singleConeTip,r.doubleConeTip,r.shadeCard,r.paperCone];
+      r.singleConeTip,r.doubleConeTip,r.shadeCard,r.paperCone,r.isPacking?'true':'false'];
     updateSheetRow('Receipts', r.id, sheetRow).then(ok => {
       if (!ok) appendRow('ChangeHistory',[new Date().toISOString(),'Receipts','EDIT-FAIL',`ID ${r.id}`]);
     });
@@ -3350,13 +3386,15 @@ function saveEdit(type) {
       rate:    parseFloat(g('ed_rate').value)||0,
       plant:   g('ed_plant').value.trim(),
       vehicle: g('ed_vehicle').value.trim(),
-      remark:  g('ed_remark').value.trim()
+      remark:  g('ed_remark').value.trim(),
+      isPacking: g('ed_ispacking').checked
     };
     saveLocal(); renderAll();
     // Update Sheet row
     const d = disp[idx];
     const sheetRow = [d.id,d.date,d.challan,d.company,d.lotNo,d.shade,d.count,d.tpi,d.blend,
-      d.bags,d.weight,d.rate,d.form,d.plant,d.vehicle,d.remark,new Date().toISOString()];
+      d.bags,d.weight,d.rate,d.form,d.plant,d.vehicle,d.remark,new Date().toISOString(),
+      d.isPacking?'true':'false'];
     updateSheetRow('Dispatch', d.id, sheetRow).then(ok => {
       if (!ok) appendRow('ChangeHistory',[new Date().toISOString(),'Dispatch','EDIT-FAIL',`ID ${d.id}`]);
     });
@@ -3441,6 +3479,7 @@ function clearForm(type){
     ['r_bags','r_weight','r_rate','r_shortage','r_papercone'].forEach(id=>{const el=g(id);if(el)el.value=''});
     g('r_lot').value=''; g('r_co').value=''; g('r_count').value=''; g('r_blend').value='';
     g('r_status').value='Received'; g('r_date').value=td;
+    const rip=g('r_ispacking'); if(rip) rip.checked=false;
     const db=g('recvDupBanner'); if(db) db.classList.remove('show');
     clearRecvPrefill();
   } else {
@@ -3449,6 +3488,7 @@ function clearForm(type){
     const dc=g('d_co'); if(dc) dc.value='';
     const df=g('d_form'); if(df) df.value='D';
     const dd=g('d_date'); if(dd) dd.value=td;
+    const dip=g('d_ispacking'); if(dip) dip.checked=false;
     // Reset challan validation UI
     const cs=g('challanStatus'); if(cs) cs.textContent='';
     g('lotRowsTbody').innerHTML='';
