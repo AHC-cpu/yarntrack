@@ -162,6 +162,15 @@ th.num{text-align:right;}
 /* Col panels */
 .col-panel{display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh);}
 .col-panel.open{display:block;}
+/* Multi-select filter */
+.ms-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-family:var(--mono);color:var(--text);cursor:pointer;white-space:nowrap;min-width:120px;justify-content:space-between;}
+.ms-btn:hover{border-color:var(--blue);color:var(--blue);}
+.ms-arr{font-size:9px;color:var(--text3);}
+.ms-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:400;min-width:190px;max-height:260px;overflow-y:auto;margin:0!important;padding:10px 12px!important;}
+.ms-actions{display:flex;gap:6px;margin-bottom:8px;}
+.ms-list{display:flex;flex-direction:column;gap:5px;}
+.ms-list label{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:2px 0;white-space:nowrap;}
+.ms-list input[type=checkbox]{width:auto;accent-color:var(--blue);}
 /* RESPONSIVE */
 @media(max-width:900px){.nav,.tabbar,.main{padding-left:14px;padding-right:14px;}.g5,.g6{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:repeat(2,1fr);}.kgrid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:600px){.g3,.g4,.g5,.g6{grid-template-columns:repeat(2,1fr);}.g2{grid-template-columns:1fr;}}
@@ -272,7 +281,10 @@ th.num{text-align:right;}
     <div class="fbar" style="margin:0;">
       <input type="text" placeholder="Search lot / company…" id="srchR" oninput="renderR()" style="width:190px;">
       <select id="fRSt" onchange="renderR()" style="width:130px;"><option value="">All Status</option><option>Received</option><option>In Process</option><option>Hold</option></select>
-      <select id="fRCo" onchange="renderR()" style="width:130px;"><option value="">All Companies</option></select>
+      <div style="position:relative;display:inline-block;">
+        <button type="button" id="rCoBtn" onclick="toggleMsPanel('rCo')" class="ms-btn"><span id="rCoLbl">All Companies</span><span class="ms-arr">▼</span></button>
+        <div id="msp_rCo" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('rCo',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('rCo',false)">None</button></div><div id="msc_rCo" class="ms-list"></div></div>
+      </div>
       <button class="chip on" onclick="setChip('recv','all',this)">All</button>
       <button class="chip" onclick="setChip('recv','today',this)">Today</button>
       <button class="chip" onclick="setChip('recv','week',this)">Week</button>
@@ -380,7 +392,10 @@ th.num{text-align:right;}
     <div class="stitle">Recent Dispatches</div>
     <div class="fbar" style="margin:0;">
       <input type="text" placeholder="Search lot / company…" id="srchD" oninput="renderD()" style="width:190px;">
-      <select id="fDCo" onchange="renderD()" style="width:130px;"><option value="">All Companies</option></select>
+      <div style="position:relative;display:inline-block;">
+        <button type="button" id="dCoBtn" onclick="toggleMsPanel('dCo')" class="ms-btn"><span id="dCoLbl">All Companies</span><span class="ms-arr">▼</span></button>
+        <div id="msp_dCo" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('dCo',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('dCo',false)">None</button></div><div id="msc_dCo" class="ms-list"></div></div>
+      </div>
       <select id="fDForm" onchange="renderD()" style="width:140px;"><option value="">All Forms</option><option value="D">D — Doubled</option><option value="R">R — Return</option><option value="S">S — Sample</option></select>
       <button class="chip on" onclick="setChip('disp','all',this)">All</button>
       <button class="chip" onclick="setChip('disp','today',this)">Today</button>
@@ -423,11 +438,26 @@ th.num{text-align:right;}
   </div>
   <div class="fbar">
     <input type="text" placeholder="Search lot / company…" id="srchL" oninput="buildLots()" style="width:190px;">
-    <select id="fLCo" onchange="buildLots()" style="width:130px;"><option value="">All Companies</option></select>
-    <select id="fLSt" onchange="buildLots()" style="width:155px;"><option value="">All Status</option><option>Received</option><option>Returned</option><option>In Process</option><option>Partial Dispatch</option><option>Fully Dispatched</option><option>Completed</option><option>Hold</option></select>
-    <select id="fLCnt" onchange="buildLots()" style="width:120px;"><option value="">All Counts</option></select>
-    <select id="fLTpi" onchange="buildLots()" style="width:110px;"><option value="">All TPI</option></select>
-    <select id="fLShd" onchange="buildLots()" style="width:130px;"><option value="">All Shades</option></select>
+    <div style="position:relative;display:inline-block;">
+      <button type="button" onclick="toggleMsPanel('lCo')" class="ms-btn"><span id="lCoLbl">All Companies</span><span class="ms-arr">▼</span></button>
+      <div id="msp_lCo" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lCo',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lCo',false)">None</button></div><div id="msc_lCo" class="ms-list"></div></div>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <button type="button" onclick="toggleMsPanel('lSt')" class="ms-btn"><span id="lStLbl">All Status</span><span class="ms-arr">▼</span></button>
+      <div id="msp_lSt" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lSt',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lSt',false)">None</button></div><div id="msc_lSt" class="ms-list"></div></div>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <button type="button" onclick="toggleMsPanel('lCnt')" class="ms-btn"><span id="lCntLbl">All Counts</span><span class="ms-arr">▼</span></button>
+      <div id="msp_lCnt" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lCnt',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lCnt',false)">None</button></div><div id="msc_lCnt" class="ms-list"></div></div>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <button type="button" onclick="toggleMsPanel('lTpi')" class="ms-btn"><span id="lTpiLbl">All TPI</span><span class="ms-arr">▼</span></button>
+      <div id="msp_lTpi" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lTpi',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lTpi',false)">None</button></div><div id="msc_lTpi" class="ms-list"></div></div>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <button type="button" onclick="toggleMsPanel('lShd')" class="ms-btn"><span id="lShdLbl">All Shades</span><span class="ms-arr">▼</span></button>
+      <div id="msp_lShd" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lShd',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lShd',false)">None</button></div><div id="msc_lShd" class="ms-list"></div></div>
+    </div>
   </div>
 
   <!-- COLUMN VISIBILITY PANEL -->
@@ -458,8 +488,8 @@ th.num{text-align:right;}
         <button class="chip" onclick="setChip('dash','yesterday',this)">Yesterday</button>
         <button class="chip" onclick="setChip('dash','week',this)">This Week</button>
         <button class="chip" onclick="setChip('dash','month',this)">This Month</button>
-        <input type="date" id="dash_from" onchange="buildDash()" title="From">
-        <input type="date" id="dash_to" onchange="buildDash()" title="To">
+        <input type="date" id="dash_from" onchange="setDashCustom();buildDash();" title="From">
+        <input type="date" id="dash_to"   onchange="setDashCustom();buildDash();" title="To">
       </div>
       <button class="btn btn-ghost btn-sm" onclick="printTab('dash')">🖨 Print</button>
     </div>
@@ -473,12 +503,26 @@ th.num{text-align:right;}
   </div>
   <div class="card" style="padding:14px 18px;margin-bottom:16px;">
     <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:10px;">Filter by Product</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
       <div class="fg"><label>Count</label><select id="df_cnt" onchange="buildDash()" style="width:130px;"><option value="">All</option></select></div>
       <div class="fg"><label>TPI</label><select id="df_tpi" onchange="buildDash()" style="width:110px;"><option value="">All</option></select></div>
       <div class="fg"><label>Shade</label><select id="df_shd" onchange="buildDash()" style="width:130px;"><option value="">All</option></select></div>
-      <div class="fg"><label>Company</label><select id="df_co" onchange="buildDash()" style="width:140px;"><option value="">All</option></select></div>
       <div class="fg"><label>Blend</label><select id="df_bld" onchange="buildDash()" style="width:110px;"><option value="">All</option></select></div>
+      <!-- Company multi-select -->
+      <div class="fg" style="position:relative;">
+        <label>Company</label>
+        <button type="button" id="coFilterBtn" onclick="toggleCoPanel()" style="display:flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12.5px;font-family:var(--mono);color:var(--text);cursor:pointer;min-width:160px;justify-content:space-between;">
+          <span id="coFilterLabel">All Companies</span>
+          <span style="font-size:10px;color:var(--text3);">▼</span>
+        </button>
+        <div id="coPanelDash" class="col-panel" style="position:absolute;top:100%;left:0;z-index:300;min-width:220px;max-height:260px;overflow-y:auto;margin-top:4px;">
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="setAllCoFilter(true)">All</button>
+            <button class="btn btn-ghost btn-sm" onclick="setAllCoFilter(false)">None</button>
+          </div>
+          <div id="coCheckboxes" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="stitle" style="margin-bottom:12px;font-size:15px;">Company-wise Summary</div>
@@ -2479,12 +2523,30 @@ function byDate(rows, tab) {
   const f=dateF[tab], now=new Date(), td=today();
   if(f==='all') return rows;
   if(f==='today') return rows.filter(r=>r.date===td);
-  if(f==='yesterday') { const y=new Date(now);y.setDate(y.getDate()-1);return rows.filter(r=>r.date===y.toISOString().split('T')[0]); }
-  if(f==='week') { const w=new Date(now);w.setDate(w.getDate()-7);return rows.filter(r=>r.date>=w.toISOString().split('T')[0]); }
-  if(f==='month') { const m=new Date(now);m.setDate(m.getDate()-30);return rows.filter(r=>r.date>=m.toISOString().split('T')[0]); }
+  if(f==='yesterday') {
+    const y=new Date(now); y.setDate(y.getDate()-1);
+    const yd=y.toISOString().split('T')[0];
+    return rows.filter(r=>r.date===yd);
+  }
+  if(f==='week') {
+    // This week = Monday to today
+    const dow=now.getDay()||7; // Mon=1..Sun=7
+    const mon=new Date(now); mon.setDate(now.getDate()-(dow-1));
+    mon.setHours(0,0,0,0);
+    const monStr=mon.toISOString().split('T')[0];
+    return rows.filter(r=>r.date>=monStr && r.date<=td);
+  }
+  if(f==='month') {
+    // This month = 1st of current month to today
+    const firstOfMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    return rows.filter(r=>r.date>=firstOfMonth && r.date<=td);
+  }
   if(f==='custom') {
     const from=g('dash_from')?.value, to=g('dash_to')?.value;
-    let out=[...rows]; if(from)out=out.filter(r=>r.date>=from); if(to)out=out.filter(r=>r.date<=to); return out;
+    let out=[...rows];
+    if(from) out=out.filter(r=>r.date>=from);
+    if(to)   out=out.filter(r=>r.date<=to);
+    return out;
   }
   return rows;
 }
@@ -2539,11 +2601,12 @@ function rcv(k){ return recvColVis[k]!==false; }
 
 function renderR() {
   let rows=[...recv];
-  const s=g('srchR').value.toLowerCase(), st=g('fRSt').value, co=g('fRCo').value;
+  const s=g('srchR').value.toLowerCase(), st=g('fRSt').value;
+  const selCos=msGet('rCo');
   rows=byDate(rows,'recv');
   if(s) rows=rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(s));
   if(st) rows=rows.filter(r=>r.status===st);
-  if(co) rows=rows.filter(r=>r.company===co);
+  if(selCos.length) rows=rows.filter(r=>selCos.includes(r.company));
   rows.sort((a,b)=>b.date.localeCompare(a.date));
   const tb=g('tbR'), em=g('emR');
   // Update header
@@ -2642,10 +2705,11 @@ function dco(k){ return dispColVis[k]!==false; }
 
 function renderD() {
   let rows=[...disp];
-  const s=g('srchD').value.toLowerCase(), co=g('fDCo').value, fm=g('fDForm').value;
+  const s=g('srchD').value.toLowerCase(), fm=g('fDForm').value;
+  const selCos=msGet('dCo');
   rows=byDate(rows,'disp');
   if(s) rows=rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(s));
-  if(co) rows=rows.filter(r=>r.company===co);
+  if(selCos.length) rows=rows.filter(r=>selCos.includes(r.company));
   if(fm) rows=rows.filter(r=>r.form===fm);
   rows.sort((a,b) => (parseInt(b.challan)||0) - (parseInt(a.challan)||0));
   const tb=g('tbD'), em=g('emD');
@@ -2770,8 +2834,12 @@ function colVisible(key) {
 }
 
 function buildLots() {
-  const s=g('srchL').value.toLowerCase(), co=g('fLCo').value, st=g('fLSt').value,
-        cnt=g('fLCnt').value, tpi=g('fLTpi').value, shd=g('fLShd').value;
+  const s=g('srchL').value.toLowerCase();
+  const selCo  = msGet('lCo');
+  const selSt  = msGet('lSt');
+  const selCnt = msGet('lCnt');
+  const selTpi = msGet('lTpi');
+  const selShd = msGet('lShd');
   const lots={};
 
   // Build from receipts (exclude packing material)
@@ -2852,12 +2920,12 @@ function buildLots() {
     return{...l, netRecvKg, netRecvBags, balKg, balBags, pct, shortagePct, allowed, cs, ageing, ageColor};
   });
 
-  if(s)  rows=rows.filter(r=>(r.lotNo+r.company+(r.altLot||'')).toLowerCase().includes(s));
-  if(co) rows=rows.filter(r=>r.company===co);
-  if(st) rows=rows.filter(r=>r.cs===st);
-  if(cnt)rows=rows.filter(r=>r.count===cnt);
-  if(tpi)rows=rows.filter(r=>r.tpi===tpi);
-  if(shd)rows=rows.filter(r=>r.shade===shd);
+  if(s)      rows=rows.filter(r=>(r.lotNo+r.company+(r.altLot||'')).toLowerCase().includes(s));
+  if(selCo.length)  rows=rows.filter(r=>selCo.includes(r.company));
+  if(selSt.length)  rows=rows.filter(r=>selSt.includes(r.cs));
+  if(selCnt.length) rows=rows.filter(r=>selCnt.includes(r.count));
+  if(selTpi.length) rows=rows.filter(r=>selTpi.includes(r.tpi));
+  if(selShd.length) rows=rows.filter(r=>selShd.includes(r.shade));
   rows.sort((a,b)=>b.date.localeCompare(a.date));
 
   const tb=g('tbL'), em=g('emL');
@@ -3182,17 +3250,20 @@ function toggleLotComplete(lotNo) {
 // DASHBOARD
 // ═══════════════════════════════════════════════
 function buildDash() {
-  const df=dateF.dash;
-  if(df==='all'&&(g('dash_from')?.value||g('dash_to')?.value)) dateF.dash='custom';
+  // Only switch to custom if user explicitly filled date inputs AND no chip is active
+  if(dateF.dash==='all' && (g('dash_from')?.value || g('dash_to')?.value)) {
+    dateF.dash='custom';
+  }
   let rr=byDate([...recv],'dash'), dd=byDate([...disp],'dash');
   // Exclude packing material from yarn stock calculations
   rr = rr.filter(r=>!r.isPacking);
   dd = dd.filter(d=>!d.isPacking);
-  const cnt=g('df_cnt').value, tpi=g('df_tpi').value, shd=g('df_shd').value, co=g('df_co').value, bld=g('df_bld').value;
+  const cnt=g('df_cnt').value, tpi=g('df_tpi').value, shd=g('df_shd').value, bld=g('df_bld').value;
+  const selectedCos = getSelectedCos(); // multi-company array
   if(cnt){rr=rr.filter(r=>r.count===cnt);dd=dd.filter(d=>d.count===cnt);}
   if(tpi){rr=rr.filter(r=>r.tpi===tpi);dd=dd.filter(d=>d.tpi===tpi);}
   if(shd){rr=rr.filter(r=>r.shade===shd);dd=dd.filter(d=>d.shade===shd);}
-  if(co){rr=rr.filter(r=>r.company===co);dd=dd.filter(d=>d.company===co);}
+  if(selectedCos.length){rr=rr.filter(r=>selectedCos.includes(r.company));dd=dd.filter(d=>selectedCos.includes(d.company));}
   if(bld){rr=rr.filter(r=>r.blend===bld);dd=dd.filter(d=>d.blend===bld);}
   // For dashboard: only D/S count as actual dispatch; R = return reduces received
   const ddActual = dd.filter(d => d.form !== 'R');
@@ -3404,38 +3475,122 @@ function saveEdit(type) {
   }
 }
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// REUSABLE MULTI-SELECT FILTER ENGINE
+// ═══════════════════════════════════════════════
+// Registry: key → { selected: Set, allLabel, callback, items: [] }
+const MS = {};
+
+function msInit(key, allLabel, items, callback) {
+  if (!MS[key]) MS[key] = { selected: new Set(), allLabel, callback, items: [] };
+  const prev = [...MS[key].selected];
+  MS[key].allLabel  = allLabel;
+  MS[key].callback  = callback;
+  MS[key].items     = items;
+  // Preserve valid selections
+  MS[key].selected  = new Set(prev.filter(v => items.includes(v)));
+  msRender(key);
+  msLabel(key);
+}
+
+function msRender(key) {
+  const wrap = g(`msc_${key}`); if(!wrap) return;
+  const {items, selected} = MS[key];
+  wrap.innerHTML = items.map(v => {
+    const on = selected.size===0 || selected.has(v);
+    return `<label><input type="checkbox" ${on?'checked':''} onchange="msCheck('${key}','${v}',this.checked)">${v}</label>`;
+  }).join('');
+}
+
+function msCheck(key, val, checked) {
+  const m = MS[key]; if(!m) return;
+  if (m.selected.size===0) m.items.forEach(v=>m.selected.add(v)); // expand from "all"
+  if (checked) m.selected.add(val); else m.selected.delete(val);
+  if (m.selected.size === m.items.length) m.selected.clear(); // all checked = "all"
+  msLabel(key);
+  m.callback();
+}
+
+function msAll(key, val) {
+  const m = MS[key]; if(!m) return;
+  if (val) m.selected.clear();
+  else { m.selected.clear(); m.selected.add('__NONE__'); }
+  msRender(key);
+  msLabel(key);
+  m.callback();
+}
+
+function msGet(key) {
+  const m = MS[key]; if(!m) return [];
+  if (m.selected.size===0) return []; // all
+  if (m.selected.has('__NONE__')) return ['__NONE__'];
+  return [...m.selected];
+}
+
+function msLabel(key) {
+  const m = MS[key]; if(!m) return;
+  const lbl = g(`${key}Lbl`); if(!lbl) return;
+  if (m.selected.size===0) { lbl.textContent = m.allLabel; return; }
+  if (m.selected.has('__NONE__')) { lbl.textContent = 'None'; return; }
+  if (m.selected.size===1) { lbl.textContent = [...m.selected][0]; return; }
+  lbl.textContent = `${m.selected.size} selected`;
+}
+
+function toggleMsPanel(key) {
+  const p = g(`msp_${key}`); if(!p) return;
+  const isOpen = p.classList.contains('open');
+  // Close all other open ms panels first
+  document.querySelectorAll('.ms-panel.open').forEach(el => el.classList.remove('open'));
+  if (!isOpen) {
+    p.classList.add('open');
+    setTimeout(() => {
+      function outside(e) {
+        if (!p.contains(e.target) && !e.target.closest('.ms-btn')) {
+          p.classList.remove('open');
+          document.removeEventListener('click', outside);
+        }
+      }
+      document.addEventListener('click', outside);
+    }, 0);
+  }
+}
+
 function populateAll() {
-  // Merge master data + data from receipts/dispatch for TPI, Shade, Lot
   const allR=[...recv,...disp];
   const tpis=uniq(allR.map(r=>r.tpi));
   const shds=uniq(allR.map(r=>r.shade));
   const lots=uniq(recv.map(r=>r.lotNo));
+  const cos =uniq(recv.map(r=>r.company));
+  const statuses=['Received','Returned','In Process','Partial Dispatch','Fully Dispatched','Completed','Hold'];
 
-  // Receive form
+  // Form selects (entry forms — remain single-select)
   fillSel('r_co', master.companies, '— Select Company —');
   fillSel('r_count', master.counts, '— Select Count —');
   fillSel('r_blend', master.blends, '— Select Blend —');
-  // Dispatch form
   fillSel('d_co', master.companies, '— Select Company —');
   fillSel('d_count', master.counts, '— Select Count —');
   fillSel('d_blend', master.blends, '— Select Blend —');
-  // Lot datalist
+
+  // Datalists
   fillDL('dl_lot', lots);
-  // Shade datalist
   fillDL('dl_shade', shds); fillDL('dl_shade2', shds);
   fillDL('dl_tpi', tpis);
-  // Filter dropdowns
-  fillSel('fRCo', master.companies, 'All Companies');
-  fillSel('fDCo', master.companies, 'All Companies');
-  fillSel('fLCo', master.companies, 'All Companies');
-  fillSel('fLCnt', master.counts, 'All Counts');
-  fillSel('fLTpi', tpis, 'All TPI');
-  fillSel('fLShd', shds, 'All Shades');
+
+  // Dashboard filters (single selects)
   fillSel('df_cnt', master.counts, 'All');
   fillSel('df_tpi', tpis, 'All');
   fillSel('df_shd', shds, 'All');
-  fillSel('df_co', master.companies, 'All');
   fillSel('df_bld', master.blends, 'All');
+  populateCoCheckboxes(); // dashboard multi-company
+
+  // Multi-select filters
+  msInit('rCo',  'All Companies', cos,       renderR);
+  msInit('dCo',  'All Companies', cos,       renderD);
+  msInit('lCo',  'All Companies', cos,       buildLots);
+  msInit('lSt',  'All Status',    statuses,  buildLots);
+  msInit('lCnt', 'All Counts',    master.counts, buildLots);
+  msInit('lTpi', 'All TPI',       tpis,      buildLots);
+  msInit('lShd', 'All Shades',    shds,      buildLots);
 }
 
 function uniq(arr){return[...new Set(arr.filter(Boolean))].sort();}
@@ -3446,15 +3601,100 @@ function fillSel(id, opts, ph){
 }
 
 // ═══════════════════════════════════════════════
+// MULTI-COMPANY FILTER (Dashboard)
+// ═══════════════════════════════════════════════
+let _selectedCos = new Set(); // empty = all companies
+
+function populateCoCheckboxes() {
+  const wrap = g('coCheckboxes'); if(!wrap) return;
+  const cos = uniq(recv.map(r=>r.company));
+  // Clean up stale selections
+  [..._selectedCos].forEach(c => { if(!cos.includes(c)) _selectedCos.delete(c); });
+  wrap.innerHTML = cos.map(co => {
+    const checked = _selectedCos.size===0 || _selectedCos.has(co);
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:3px 0;">
+      <input type="checkbox" ${checked?'checked':''} onchange="onCoCheck('${co}',this.checked)"
+        style="width:auto;accent-color:var(--blue);">
+      <span>${co}</span>
+    </label>`;
+  }).join('');
+  updateCoFilterLabel();
+}
+
+function onCoCheck(co, checked) {
+  const cos = uniq(recv.map(r=>r.company));
+  // If currently "all selected" (empty set), expand to explicit set first
+  if(_selectedCos.size===0) cos.forEach(c=>_selectedCos.add(c));
+  if(checked) _selectedCos.add(co); else _selectedCos.delete(co);
+  // If all checked, reset to empty (means all)
+  if(_selectedCos.size===cos.length) _selectedCos.clear();
+  updateCoFilterLabel();
+  buildDash();
+}
+
+function setAllCoFilter(val) {
+  if(val) {
+    _selectedCos.clear(); // empty = all
+  } else {
+    // Select none — keep set non-empty with a dummy that matches nothing
+    _selectedCos.clear();
+    _selectedCos.add('__NONE__');
+  }
+  populateCoCheckboxes();
+  buildDash();
+}
+
+function getSelectedCos() {
+  if(_selectedCos.size===0) return []; // empty = all companies
+  if(_selectedCos.has('__NONE__')) return ['__NONE__']; // none selected
+  return [..._selectedCos];
+}
+
+function updateCoFilterLabel() {
+  const lbl = g('coFilterLabel'); if(!lbl) return;
+  const cos = uniq(recv.map(r=>r.company));
+  if(_selectedCos.size===0) { lbl.textContent='All Companies'; return; }
+  if(_selectedCos.has('__NONE__')) { lbl.textContent='No Company'; return; }
+  if(_selectedCos.size===1) { lbl.textContent=[..._selectedCos][0]; return; }
+  lbl.textContent=`${_selectedCos.size} Companies`;
+}
+
+function toggleCoPanel() {
+  const p=g('coPanelDash'); if(!p) return;
+  p.classList.toggle('open');
+  // Close when clicking outside
+  if(p.classList.contains('open')) {
+    setTimeout(()=>{
+      document.addEventListener('click', function closePanel(e){
+        if(!p.contains(e.target) && e.target.id!=='coFilterBtn'){
+          p.classList.remove('open');
+          document.removeEventListener('click', closePanel);
+        }
+      });
+    }, 0);
+  }
+}
+
+// ═══════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════
 function g(id){return document.getElementById(id);}
 function sg(id,v){const el=g(id);if(el)el.textContent=v;}
+function setDashCustom(){
+  dateF.dash='custom';
+  // Deactivate all chips in dash fbar
+  document.querySelectorAll('#p-dash .chip').forEach(b=>b.classList.remove('on'));
+}
 function setChip(tab,val,btn){
   dateF[tab]=val;
   const bar=btn.closest('.fbar')||btn.parentElement;
   bar.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
+  // Clear date inputs when a chip filter is chosen so they don't interfere
+  if(tab==='dash' && val!=='custom') {
+    const df=g('dash_from'), dt=g('dash_to');
+    if(df) df.value=''; if(dt) dt.value='';
+  }
   if(tab==='recv')renderR();else if(tab==='disp')renderD();else buildDash();
 }
 let lotRowCount = 0;
