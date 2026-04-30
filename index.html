@@ -571,7 +571,8 @@ th.num{text-align:right;}
   </div>
   <div class="kgrid">
     <div class="kcard kc-amber"><div class="klabel">Total Received (kg)</div><div class="kval" id="k_recv">—</div><div class="ksub" id="k_recv_s">—</div></div>
-    <div class="kcard kc-red"><div class="klabel">Total Dispatched (kg)</div><div class="kval" id="k_disp">—</div><div class="ksub" id="k_disp_s">—</div></div>
+    <div class="kcard kc-blue"><div class="klabel">Total Dispatched (kg)</div><div class="klabel" style="font-size:9px;color:var(--text3);margin-top:2px;">Twisted/Doubled only</div><div class="kval" id="k_disp">—</div><div class="ksub" id="k_disp_s">—</div></div>
+    <div class="kcard kc-red"><div class="klabel">Total Returned (kg)</div><div class="klabel" style="font-size:9px;color:var(--text3);margin-top:2px;">R-Return to party</div><div class="kval" id="k_ret">—</div><div class="ksub" id="k_ret_s">—</div></div>
     <div class="kcard kc-green"><div class="klabel">Current Stock (kg)</div><div class="kval" id="k_stk">—</div><div class="ksub" id="k_stk_s">—</div></div>
     <div class="kcard kc-blue"><div class="klabel">Active Lots</div><div class="kval" id="k_lots">—</div><div class="ksub" id="k_lots_s">—</div></div>
     <div class="kcard kc-purple"><div class="klabel">Pending (kg)</div><div class="kval" id="k_pend">—</div><div class="ksub" id="k_pend_s">—</div></div>
@@ -613,6 +614,27 @@ th.num{text-align:right;}
     <div>
       <div class="stitle" style="margin-bottom:12px;font-size:15px;">Stock by Shade</div>
       <div class="tw"><table><thead><tr><th>Shade</th><th class="num">Balance (kg)</th><th class="num">Bags</th><th class="num">Lots</th></tr></thead><tbody id="tbByShd"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- RETURNS TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;margin-top:4px;">
+    <div style="padding:14px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--red);">↩ Returns (R-Return to Party)</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Yarn returned back — not counted in dispatch or stock</div>
+      </div>
+      <div id="dashRetKpi" style="font-size:13px;font-weight:700;color:var(--red);"></div>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th>
+          <th>Count</th><th>Shade</th>
+          <th class="num">Bags</th><th class="num">Weight (kg)</th>
+        </tr></thead>
+        <tbody id="tbReturns"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -3928,9 +3950,10 @@ function buildDash() {
     const dw  = dd.filter(d=>d.lotNo===lot&&d.form!=='R').reduce((a,d)=>a+d.weight,0);
     return s+Math.max(0,Math.max(0,rw-ret)-dw);
   },0);
-  sg('k_recv', fmtKg(totalR));  sg('k_recv_s', rBags+' bags');
-  sg('k_disp', fmtKg(totalD));  sg('k_disp_s', dBags+' bags dispatched, '+fmtKg(totalRet)+' kg returned');
-  sg('k_stk',  fmtKg(stock));   sg('k_stk_s',  Math.max(0,rBags-retBags-dBags)+' bags');
+  sg('k_recv', fmtKg(totalR));  sg('k_recv_s', rBags+' bags received');
+  sg('k_disp', fmtKg(totalD));  sg('k_disp_s', dBags+' bags twisted & dispatched');
+  sg('k_ret',  fmtKg(totalRet)); sg('k_ret_s', retBags+' bags returned to party');
+  sg('k_stk',  fmtKg(stock));   sg('k_stk_s',  Math.max(0,rBags-retBags-dBags)+' bags in stock');
   sg('k_lots', activeLots.length); sg('k_lots_s','lots in progress');
   sg('k_pend', fmtKg(pendKg));  sg('k_pend_s', activeLots.length+' lots pending');
   const cos={};
@@ -3977,6 +4000,25 @@ function buildDash() {
     .map(([k,v])=>{
     const bKg=Math.max(0,v.rKg-v.dKg);return`<tr><td>${k}</td><td class="num" style="font-weight:700;color:var(--green)">${fmtKg(bKg)}</td><td class="num">${Math.max(0,v.rBags-v.dBags)}</td><td class="num">${v.lots.size}</td></tr>`;
   }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No stock</td></tr>';
+
+  // Returns table
+  const retRows = ddReturn.sort((a,b)=>b.date.localeCompare(a.date));
+  g('tbReturns').innerHTML = retRows.length
+    ? retRows.map(r=>`<tr>
+        <td>${r.date}</td>
+        <td style="color:var(--text3)">${r.challan}</td>
+        <td style="font-weight:500">${r.company}</td>
+        <td style="color:var(--blue);font-weight:600">${r.lotNo}</td>
+        <td><span class="badge b-blue">${r.count||'—'}</span></td>
+        <td>${r.shade||'—'}</td>
+        <td class="num">${r.bags}</td>
+        <td class="num" style="font-weight:700;color:var(--red);">−${fmtKg(r.weight)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No returns in selected period</td></tr>';
+  const retEl=g('dashRetKpi');
+  if(retEl) retEl.textContent = retRows.length
+    ? `${retRows.length} return${retRows.length>1?'s':''} · ${fmtKg(totalRet)} kg total`
+    : 'No returns';
 }
 
 // ═══════════════════════════════════════════════
@@ -4121,13 +4163,17 @@ function saveEdit(type) {
 const MS = {};
 
 function msInit(key, allLabel, items, callback) {
-  if (!MS[key]) MS[key] = { selected: new Set(), allLabel, callback, items: [] };
+  if (!MS[key]) {
+    // First time — create fresh with empty selection (= all)
+    MS[key] = { selected: new Set(), allLabel, callback, items: [] };
+  }
+  MS[key].allLabel = allLabel;
+  MS[key].callback = callback;
+  // Only update items list; preserve existing selections
   const prev = [...MS[key].selected];
-  MS[key].allLabel  = allLabel;
-  MS[key].callback  = callback;
-  MS[key].items     = items;
-  // Preserve valid selections
-  MS[key].selected  = new Set(prev.filter(v => items.includes(v)));
+  MS[key].items = items;
+  // Remove selections that no longer exist in items
+  MS[key].selected = new Set(prev.filter(v => items.includes(v)));
   msRender(key);
   msLabel(key);
 }
@@ -4137,23 +4183,29 @@ function msRender(key) {
   const {items, selected} = MS[key];
   wrap.innerHTML = items.map(v => {
     const on = selected.size===0 || selected.has(v);
-    return `<label><input type="checkbox" ${on?'checked':''} onchange="msCheck('${key}','${v}',this.checked)">${v}</label>`;
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:3px 0;">
+      <input type="checkbox" ${on?'checked':''} onchange="msCheck('${key}','${v.replace(/'/g,"&#39;")}',this.checked)" style="width:auto;accent-color:var(--blue);">
+      ${v}
+    </label>`;
   }).join('');
 }
 
 function msCheck(key, val, checked) {
   const m = MS[key]; if(!m) return;
-  if (m.selected.size===0) m.items.forEach(v=>m.selected.add(v)); // expand from "all"
+  // Expand "all" (empty set) to explicit full set first
+  if (m.selected.size===0) m.items.forEach(v => m.selected.add(v));
   if (checked) m.selected.add(val); else m.selected.delete(val);
-  if (m.selected.size === m.items.length) m.selected.clear(); // all checked = "all"
+  // If all are now checked, collapse back to "all" mode
+  if (m.selected.size >= m.items.length) m.selected.clear();
+  msRender(key);   // re-render checkboxes to reflect new state
   msLabel(key);
   m.callback();
 }
 
 function msAll(key, val) {
   const m = MS[key]; if(!m) return;
-  if (val) m.selected.clear();
-  else { m.selected.clear(); m.selected.add('__NONE__'); }
+  if (val) m.selected.clear();          // all = empty set
+  else { m.selected.clear(); m.selected.add('__NONE__'); }  // none
   msRender(key);
   msLabel(key);
   m.callback();
@@ -4161,8 +4213,8 @@ function msAll(key, val) {
 
 function msGet(key) {
   const m = MS[key]; if(!m) return [];
-  if (m.selected.size===0) return []; // all
-  if (m.selected.has('__NONE__')) return ['__NONE__'];
+  if (m.selected.size===0) return [];  // empty = all, no filter
+  if (m.selected.has('__NONE__')) return ['__NONE__'];  // none selected
   return [...m.selected];
 }
 
@@ -4170,9 +4222,9 @@ function msLabel(key) {
   const m = MS[key]; if(!m) return;
   const lbl = g(`${key}Lbl`); if(!lbl) return;
   if (m.selected.size===0) { lbl.textContent = m.allLabel; return; }
-  if (m.selected.has('__NONE__')) { lbl.textContent = 'None'; return; }
+  if (m.selected.has('__NONE__')) { lbl.textContent = 'None selected'; return; }
   if (m.selected.size===1) { lbl.textContent = [...m.selected][0]; return; }
-  lbl.textContent = `${m.selected.size} selected`;
+  lbl.textContent = `${m.selected.size} of ${m.items.length} selected`;
 }
 
 function toggleMsPanel(key) {
