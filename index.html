@@ -359,7 +359,7 @@ th.num{text-align:right;}
       <select id="fRSt" onchange="renderR()" style="width:130px;"><option value="">All Status</option><option>Received</option><option>In Process</option><option>Hold</option></select>
       <div style="position:relative;display:inline-block;">
         <button type="button" id="rCoBtn" onclick="toggleMsPanel('rCo')" class="ms-btn"><span id="rCoLbl">All Companies</span><span class="ms-arr">▼</span></button>
-        <div id="msp_rCo" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('rCo',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('rCo',false)">None</button></div><div id="msc_rCo" class="ms-list"></div></div>
+        <div id="msp_rCo" class="col-panel ms-panel"><div id="msc_rCo" class="ms-list"></div></div>
       </div>
       <button class="chip on" onclick="setChip('recv','all',this)">All</button>
       <button class="chip" onclick="setChip('recv','today',this)">Today</button>
@@ -464,7 +464,7 @@ th.num{text-align:right;}
       <input type="text" placeholder="Search lot / company…" id="srchD" oninput="renderD()" style="width:190px;">
       <div style="position:relative;display:inline-block;">
         <button type="button" id="dCoBtn" onclick="toggleMsPanel('dCo')" class="ms-btn"><span id="dCoLbl">All Companies</span><span class="ms-arr">▼</span></button>
-        <div id="msp_dCo" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('dCo',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('dCo',false)">None</button></div><div id="msc_dCo" class="ms-list"></div></div>
+        <div id="msp_dCo" class="col-panel ms-panel"><div id="msc_dCo" class="ms-list"></div></div>
       </div>
       <select id="fDForm" onchange="renderD()" style="width:140px;"><option value="">All Forms</option><option value="D">D — Doubled</option><option value="R">R — Return</option><option value="S">S — Sample</option></select>
       <button class="chip on" onclick="setChip('disp','all',this)">All</button>
@@ -510,23 +510,23 @@ th.num{text-align:right;}
     <input type="text" placeholder="Search lot / company…" id="srchL" oninput="buildLots()" style="width:190px;">
     <div style="position:relative;display:inline-block;">
       <button type="button" onclick="toggleMsPanel('lCo')" class="ms-btn"><span id="lCoLbl">All Companies</span><span class="ms-arr">▼</span></button>
-      <div id="msp_lCo" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lCo',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lCo',false)">None</button></div><div id="msc_lCo" class="ms-list"></div></div>
+      <div id="msp_lCo" class="col-panel ms-panel"><div id="msc_lCo" class="ms-list"></div></div>
     </div>
     <div style="position:relative;display:inline-block;">
       <button type="button" onclick="toggleMsPanel('lSt')" class="ms-btn"><span id="lStLbl">All Status</span><span class="ms-arr">▼</span></button>
-      <div id="msp_lSt" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lSt',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lSt',false)">None</button></div><div id="msc_lSt" class="ms-list"></div></div>
+      <div id="msp_lSt" class="col-panel ms-panel"><div id="msc_lSt" class="ms-list"></div></div>
     </div>
     <div style="position:relative;display:inline-block;">
       <button type="button" onclick="toggleMsPanel('lCnt')" class="ms-btn"><span id="lCntLbl">All Counts</span><span class="ms-arr">▼</span></button>
-      <div id="msp_lCnt" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lCnt',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lCnt',false)">None</button></div><div id="msc_lCnt" class="ms-list"></div></div>
+      <div id="msp_lCnt" class="col-panel ms-panel"><div id="msc_lCnt" class="ms-list"></div></div>
     </div>
     <div style="position:relative;display:inline-block;">
       <button type="button" onclick="toggleMsPanel('lTpi')" class="ms-btn"><span id="lTpiLbl">All TPI</span><span class="ms-arr">▼</span></button>
-      <div id="msp_lTpi" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lTpi',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lTpi',false)">None</button></div><div id="msc_lTpi" class="ms-list"></div></div>
+      <div id="msp_lTpi" class="col-panel ms-panel"><div id="msc_lTpi" class="ms-list"></div></div>
     </div>
     <div style="position:relative;display:inline-block;">
       <button type="button" onclick="toggleMsPanel('lShd')" class="ms-btn"><span id="lShdLbl">All Shades</span><span class="ms-arr">▼</span></button>
-      <div id="msp_lShd" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lShd',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lShd',false)">None</button></div><div id="msc_lShd" class="ms-list"></div></div>
+      <div id="msp_lShd" class="col-panel ms-panel"><div id="msc_lShd" class="ms-list"></div></div>
     </div>
     <!-- Show Completed checkbox -->
     <label style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;">
@@ -591,12 +591,13 @@ th.num{text-align:right;}
           <span id="coFilterLabel">All Companies</span>
           <span style="font-size:10px;color:var(--text3);">▼</span>
         </button>
-        <div id="coPanelDash" class="col-panel" style="position:absolute;top:100%;left:0;z-index:300;min-width:220px;max-height:260px;overflow-y:auto;margin-top:4px;">
-          <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div id="coPanelDash" class="col-panel" style="position:absolute;top:100%;left:0;z-index:300;min-width:220px;max-height:320px;overflow-y:auto;margin-top:4px;">
+          <div id="coCheckboxes" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;"></div>
+          <div style="padding-top:8px;border-top:1px solid var(--border);display:flex;gap:6px;">
+            <button class="btn btn-blue btn-sm" style="flex:1" onclick="applyCoFilter()">✓ Apply</button>
             <button class="btn btn-ghost btn-sm" onclick="setAllCoFilter(true)">All</button>
             <button class="btn btn-ghost btn-sm" onclick="setAllCoFilter(false)">None</button>
           </div>
-          <div id="coCheckboxes" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
       </div>
     </div>
@@ -4183,11 +4184,22 @@ function msRender(key) {
   const {items, selected} = MS[key];
   wrap.innerHTML = items.map(v => {
     const on = selected.size===0 || selected.has(v);
-    return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:3px 0;">
-      <input type="checkbox" ${on?'checked':''} onchange="msCheck('${key}','${v.replace(/'/g,"&#39;")}',this.checked)" style="width:auto;accent-color:var(--blue);">
-      ${v}
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:4px 0;border-bottom:1px solid #f3f4f6;">
+      <input type="checkbox" ${on?'checked':''} onchange="msCheck('${key}','${v.replace(/'/g,"&#39;")}',this.checked)" style="width:auto;accent-color:var(--blue);cursor:pointer;">
+      <span>${v}</span>
     </label>`;
   }).join('');
+  // Add Apply button at bottom
+  const applyWrap = wrap.parentElement?.querySelector('.ms-apply');
+  if (!applyWrap) {
+    const applyDiv = document.createElement('div');
+    applyDiv.className = 'ms-apply';
+    applyDiv.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;gap:6px;';
+    applyDiv.innerHTML = `<button class="btn btn-blue btn-sm" style="flex:1" onclick="msApply('${key}')">✓ Apply</button>
+      <button class="btn btn-ghost btn-sm" onclick="msAll('${key}',true)">All</button>
+      <button class="btn btn-ghost btn-sm" onclick="msAll('${key}',false)">None</button>`;
+    wrap.parentElement.appendChild(applyDiv);
+  }
 }
 
 function msCheck(key, val, checked) {
@@ -4197,18 +4209,25 @@ function msCheck(key, val, checked) {
   if (checked) m.selected.add(val); else m.selected.delete(val);
   // If all are now checked, collapse back to "all" mode
   if (m.selected.size >= m.items.length) m.selected.clear();
-  msRender(key);   // re-render checkboxes to reflect new state
+  msRender(key);
+  msLabel(key);
+  // DO NOT call callback here — user clicks Apply button to confirm
+}
+
+function msApply(key) {
+  const m = MS[key]; if(!m) return;
+  const p = g(`msp_${key}`); if(p) p.classList.remove('open');
   msLabel(key);
   m.callback();
 }
 
 function msAll(key, val) {
   const m = MS[key]; if(!m) return;
-  if (val) m.selected.clear();          // all = empty set
-  else { m.selected.clear(); m.selected.add('__NONE__'); }  // none
+  if (val) m.selected.clear();
+  else { m.selected.clear(); m.selected.add('__NONE__'); }
   msRender(key);
   msLabel(key);
-  m.callback();
+  // Don't close panel, just update - user still clicks Apply
 }
 
 function msGet(key) {
@@ -4227,23 +4246,16 @@ function msLabel(key) {
   lbl.textContent = `${m.selected.size} of ${m.items.length} selected`;
 }
 
+function toggleCoPanel() {
+  const p=g('coPanelDash'); if(!p) return;
+  p.classList.toggle('open');
+}
+
 function toggleMsPanel(key) {
   const p = g(`msp_${key}`); if(!p) return;
   const isOpen = p.classList.contains('open');
-  // Close all other open ms panels first
   document.querySelectorAll('.ms-panel.open').forEach(el => el.classList.remove('open'));
-  if (!isOpen) {
-    p.classList.add('open');
-    setTimeout(() => {
-      function outside(e) {
-        if (!p.contains(e.target) && !e.target.closest('.ms-btn')) {
-          p.classList.remove('open');
-          document.removeEventListener('click', outside);
-        }
-      }
-      document.addEventListener('click', outside);
-    }, 0);
-  }
+  if (!isOpen) p.classList.add('open');
 }
 
 function populateAll() {
@@ -4299,40 +4311,44 @@ let _selectedCos = new Set(); // empty = all companies
 function populateCoCheckboxes() {
   const wrap = g('coCheckboxes'); if(!wrap) return;
   const cos = uniq(recv.map(r=>r.company));
-  // Clean up stale selections
   [..._selectedCos].forEach(c => { if(!cos.includes(c)) _selectedCos.delete(c); });
   wrap.innerHTML = cos.map(co => {
     const checked = _selectedCos.size===0 || _selectedCos.has(co);
-    return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:3px 0;">
-      <input type="checkbox" ${checked?'checked':''} onchange="onCoCheck('${co}',this.checked)"
-        style="width:auto;accent-color:var(--blue);">
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:4px 0;border-bottom:1px solid #f3f4f6;">
+      <input type="checkbox" ${checked?'checked':''} data-co="${co}"
+        style="width:auto;accent-color:var(--blue);cursor:pointer;">
       <span>${co}</span>
     </label>`;
   }).join('');
   updateCoFilterLabel();
 }
 
-function onCoCheck(co, checked) {
+function applyCoFilter() {
+  const wrap = g('coCheckboxes'); if(!wrap) return;
   const cos = uniq(recv.map(r=>r.company));
-  // If currently "all selected" (empty set), expand to explicit set first
-  if(_selectedCos.size===0) cos.forEach(c=>_selectedCos.add(c));
-  if(checked) _selectedCos.add(co); else _selectedCos.delete(co);
-  // If all checked, reset to empty (means all)
-  if(_selectedCos.size===cos.length) _selectedCos.clear();
+  _selectedCos.clear();
+  const boxes = wrap.querySelectorAll('input[type=checkbox]');
+  const checkedCos = [...boxes].filter(cb=>cb.checked).map(cb=>cb.dataset.co);
+  if(checkedCos.length < cos.length) {
+    checkedCos.forEach(c=>_selectedCos.add(c));
+  }
+  // else all checked = empty set = all
+  g('coPanelDash').classList.remove('open');
   updateCoFilterLabel();
   buildDash();
 }
 
+function onCoCheck(co, checked) { /* handled by applyCoFilter */ }
+
 function setAllCoFilter(val) {
   if(val) {
-    _selectedCos.clear(); // empty = all
+    _selectedCos.clear();
   } else {
-    // Select none — keep set non-empty with a dummy that matches nothing
     _selectedCos.clear();
     _selectedCos.add('__NONE__');
   }
   populateCoCheckboxes();
-  buildDash();
+  // Don't auto-apply — user still clicks Apply
 }
 
 function getSelectedCos() {
@@ -4348,22 +4364,6 @@ function updateCoFilterLabel() {
   if(_selectedCos.has('__NONE__')) { lbl.textContent='No Company'; return; }
   if(_selectedCos.size===1) { lbl.textContent=[..._selectedCos][0]; return; }
   lbl.textContent=`${_selectedCos.size} Companies`;
-}
-
-function toggleCoPanel() {
-  const p=g('coPanelDash'); if(!p) return;
-  p.classList.toggle('open');
-  // Close when clicking outside
-  if(p.classList.contains('open')) {
-    setTimeout(()=>{
-      document.addEventListener('click', function closePanel(e){
-        if(!p.contains(e.target) && e.target.id!=='coFilterBtn'){
-          p.classList.remove('open');
-          document.removeEventListener('click', closePanel);
-        }
-      });
-    }, 0);
-  }
 }
 
 // ═══════════════════════════════════════════════
