@@ -344,12 +344,6 @@ th.num{text-align:right;}
     </div>
     <div class="grid g2" style="margin-bottom:16px;">
       <div class="fg"><label>Remarks</label><input type="text" id="r_remarks" placeholder="Optional"></div>
-      <div class="fg"><label>Item Type</label>
-        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
-          <input type="checkbox" id="r_ispacking" style="width:auto;accent-color:var(--purple);">
-          <span id="r_ispacking_lbl" style="color:var(--text2);">📦 Mark as Packing Material</span>
-        </label>
-      </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button class="btn btn-green" id="btnR" onclick="saveReceive()">✓ Save Receipt</button>
@@ -423,12 +417,6 @@ th.num{text-align:right;}
       <div class="fg"><label>Plant</label><input type="text" id="d_plant" placeholder="Plant 1 / 2 / 3"></div>
       <div class="fg"><label>Job Work Rate (₹/kg) <small style="color:var(--text3);font-size:9px;text-transform:none;">(applied to all lots unless overridden)</small></label><input type="number" id="d_rate" placeholder="61.87" step="0.01"></div>
       <div class="fg"><label>Remark</label><input type="text" id="d_remark" placeholder="Optional"></div>
-      <div class="fg"><label>Item Type</label>
-        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
-          <input type="checkbox" id="d_ispacking" style="width:auto;accent-color:var(--purple);">
-          <span style="color:var(--text2);">📦 Packing Material</span>
-        </label>
-      </div>
     </div>
     <div style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:10px;">
       Lots in this Challan
@@ -540,6 +528,11 @@ th.num{text-align:right;}
       <button type="button" onclick="toggleMsPanel('lShd')" class="ms-btn"><span id="lShdLbl">All Shades</span><span class="ms-arr">▼</span></button>
       <div id="msp_lShd" class="col-panel ms-panel"><div class="ms-actions"><button class="btn btn-ghost btn-sm" onclick="msAll('lShd',true)">All</button><button class="btn btn-ghost btn-sm" onclick="msAll('lShd',false)">None</button></div><div id="msc_lShd" class="ms-list"></div></div>
     </div>
+    <!-- Show Completed checkbox -->
+    <label style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;">
+      <input type="checkbox" id="showCompletedLots" onchange="buildLots()" style="width:auto;accent-color:var(--green);">
+      ✓ Show Completed
+    </label>
   </div>
 
   <!-- COLUMN VISIBILITY PANEL -->
@@ -877,7 +870,7 @@ th.num{text-align:right;}
 <!-- ════════════════════════════════════════ -->
 <div id="p-pkgmat" class="panel">
   <div class="shdr">
-    <div class="stitle">Packing Material <small>Track packing material receipts &amp; dispatches separately</small></div>
+    <div class="stitle">Packing Material <small>Track packing material stock separately from yarn</small></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-ghost btn-sm" onclick="renderPkgMat()">↺ Refresh</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadExcel('pkgmat')" style="color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
@@ -890,46 +883,83 @@ th.num{text-align:right;}
     <div class="kcard kc-blue"><div class="klabel">Total Pkg Received (kg)</div><div class="kval" id="pkgTotRecv">—</div></div>
     <div class="kcard kc-red"><div class="klabel">Total Pkg Dispatched (kg)</div><div class="kval" id="pkgTotDisp">—</div></div>
     <div class="kcard kc-green"><div class="klabel">Pkg Balance (kg)</div><div class="kval" id="pkgTotBal">—</div></div>
-    <div class="kcard kc-amber"><div class="klabel">Pkg Entries</div><div class="kval" id="pkgTotCount">—</div></div>
+    <div class="kcard kc-amber"><div class="klabel">Total Entries</div><div class="kval" id="pkgTotCount">—</div></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
-    <!-- RECEIPTS -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <!-- RECEIPT FORM + TABLE -->
     <div>
+      <div class="card">
+        <div class="card-title">📥 Add Packing Receipt</div>
+        <div class="grid g3" style="margin-bottom:10px;">
+          <div class="fg"><label>Date *</label><input type="date" id="pkg_r_date"></div>
+          <div class="fg"><label>Challan No. *</label><input type="text" id="pkg_r_challan" placeholder="e.g. 100"></div>
+          <div class="fg"><label>Company *</label><select id="pkg_r_co"><option value="">— Select —</option></select></div>
+        </div>
+        <div class="grid g3" style="margin-bottom:10px;">
+          <div class="fg"><label>Item Name *</label><input type="text" id="pkg_r_item" placeholder="e.g. BOPP Tape"></div>
+          <div class="fg"><label>Qty / Bags *</label><input type="number" id="pkg_r_bags" placeholder="0" min="0" step="1"></div>
+          <div class="fg"><label>Weight (kg)</label><input type="number" id="pkg_r_weight" placeholder="0.00" step="0.01" min="0"></div>
+        </div>
+        <div class="grid g2" style="margin-bottom:12px;">
+          <div class="fg"><label>Unit Price (₹)</label><input type="number" id="pkg_r_price" placeholder="0.00" step="0.01" min="0"></div>
+          <div class="fg"><label>Remarks</label><input type="text" id="pkg_r_remarks" placeholder="Optional"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-amber" onclick="savePkgRecv()">✓ Save Receipt</button>
+          <button class="btn btn-ghost" onclick="clearPkgForm('r')">Clear</button>
+        </div>
+      </div>
       <div class="shdr" style="margin-bottom:10px;">
-        <div class="stitle" style="font-size:14px;">📥 Packing Receipts</div>
+        <div class="stitle" style="font-size:14px;">Recent Packing Receipts</div>
       </div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div class="tw">
           <table>
-            <thead><tr>
-              <th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th>
-              <th class="num">Bags</th><th class="num">Weight (kg)</th><th>Status</th><th>Remarks</th>
-            </tr></thead>
+            <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Item</th><th class="num">Bags</th><th class="num">Weight (kg)</th><th class="num">Price (₹)</th><th>Remarks</th><th>Del</th></tr></thead>
             <tbody id="pkgRecvTbody"></tbody>
           </table>
         </div>
       </div>
-      <div id="emPkgRecv" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No packing receipts. Mark entries as Packing Material in Order Receive.</p></div>
+      <div id="emPkgRecv" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No packing receipts yet.</p></div>
     </div>
 
-    <!-- DISPATCHES -->
+    <!-- DISPATCH FORM + TABLE -->
     <div>
+      <div class="card">
+        <div class="card-title">📤 Add Packing Dispatch</div>
+        <div class="grid g3" style="margin-bottom:10px;">
+          <div class="fg"><label>Date *</label><input type="date" id="pkg_d_date"></div>
+          <div class="fg"><label>Challan No. *</label><input type="text" id="pkg_d_challan" placeholder="e.g. 501"></div>
+          <div class="fg"><label>Company *</label><select id="pkg_d_co"><option value="">— Select —</option></select></div>
+        </div>
+        <div class="grid g3" style="margin-bottom:10px;">
+          <div class="fg"><label>Item Name *</label><input type="text" id="pkg_d_item" placeholder="e.g. BOPP Tape"></div>
+          <div class="fg"><label>Qty / Bags *</label><input type="number" id="pkg_d_bags" placeholder="0" min="0" step="1"></div>
+          <div class="fg"><label>Weight (kg)</label><input type="number" id="pkg_d_weight" placeholder="0.00" step="0.01" min="0"></div>
+        </div>
+        <div class="grid g2" style="margin-bottom:12px;">
+          <div class="fg"><label>Lot No. (if applicable)</label><input type="text" id="pkg_d_lot" placeholder="e.g. BSL123" list="dl_lot"></div>
+          <div class="fg"><label>Remarks</label><input type="text" id="pkg_d_remarks" placeholder="Optional"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-red" onclick="savePkgDisp()">✓ Save Dispatch</button>
+          <button class="btn btn-ghost" onclick="clearPkgForm('d')">Clear</button>
+        </div>
+      </div>
       <div class="shdr" style="margin-bottom:10px;">
-        <div class="stitle" style="font-size:14px;">📤 Packing Dispatches</div>
+        <div class="stitle" style="font-size:14px;">Recent Packing Dispatches</div>
       </div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div class="tw">
           <table>
-            <thead><tr>
-              <th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th>
-              <th class="num">Bags</th><th class="num">Weight (kg)</th><th>Form</th><th>Remark</th>
-            </tr></thead>
+            <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Item</th><th class="num">Bags</th><th class="num">Weight (kg)</th><th>Lot No.</th><th>Remarks</th><th>Del</th></tr></thead>
             <tbody id="pkgDispTbody"></tbody>
           </table>
         </div>
       </div>
-      <div id="emPkgDisp" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No packing dispatches. Mark entries as Packing Material in Dispatch.</p></div>
+      <div id="emPkgDisp" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No packing dispatches yet.</p></div>
     </div>
   </div>
 </div>
@@ -1234,12 +1264,6 @@ th.num{text-align:right;}
     </div>
     <div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;">
       <div class="fg" style="flex:1"><label>Remarks</label><input type="text" id="er_remarks"></div>
-      <div class="fg"><label>Item Type</label>
-        <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
-          <input type="checkbox" id="er_ispacking" style="width:auto;accent-color:var(--purple);">
-          <span style="color:var(--text2);">📦 Packing Material</span>
-        </label>
-      </div>
     </div>
     <div class="mfooter">
       <button class="btn btn-ghost" onclick="closeModal('editRecvModal')">Cancel</button>
@@ -1277,12 +1301,6 @@ th.num{text-align:right;}
       <div class="fg"><label>Plant</label><input type="text" id="ed_plant"></div>
       <div class="fg"><label>Vehicle No.</label><input type="text" id="ed_vehicle"></div>
       <div class="fg"><label>Remark</label><input type="text" id="ed_remark"></div>
-    </div>
-    <div style="margin-bottom:14px;">
-      <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surf2);font-size:12px;font-family:var(--mono);">
-        <input type="checkbox" id="ed_ispacking" style="width:auto;accent-color:var(--purple);">
-        <span style="color:var(--text2);">📦 Packing Material (exclude from yarn stock totals)</span>
-      </label>
     </div>
     <div class="mfooter">
       <button class="btn btn-ghost" onclick="closeModal('editDispModal')">Cancel</button>
@@ -2120,57 +2138,119 @@ async function syncSheets() {
 function syncNow() { syncSheets(); }
 
 // ═══════════════════════════════════════════════
-// PACKING MATERIAL TAB
+// PACKING MATERIAL — standalone data store
 // ═══════════════════════════════════════════════
+let pkgRecv = JSON.parse(localStorage.getItem('yt2_pkgrecv')||'[]');
+let pkgDisp = JSON.parse(localStorage.getItem('yt2_pkgdisp')||'[]');
+
+function savePkgLocal(){
+  localStorage.setItem('yt2_pkgrecv', JSON.stringify(pkgRecv));
+  localStorage.setItem('yt2_pkgdisp', JSON.stringify(pkgDisp));
+}
+
 function renderPkgMat() {
-  const pkgRecv = recv.filter(r=>r.isPacking);
-  const pkgDisp = disp.filter(d=>d.isPacking);
+  // Populate company selects
+  ['pkg_r_co','pkg_d_co'].forEach(id=>{
+    const el=g(id); if(!el)return;
+    const cur=el.value;
+    el.innerHTML='<option value="">— Select —</option>'+master.companies.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  });
+  // Set default dates
+  const td=today();
+  if(!g('pkg_r_date').value) g('pkg_r_date').value=td;
+  if(!g('pkg_d_date').value) g('pkg_d_date').value=td;
 
-  const totRecv = pkgRecv.reduce((s,r)=>s+r.weight,0);
-  const totDisp = pkgDisp.reduce((s,d)=>s+d.weight,0);
-  const totBal  = totRecv - totDisp;
-
+  // KPIs
+  const totRecv = pkgRecv.reduce((s,r)=>s+(r.weight||0),0);
+  const totDisp = pkgDisp.reduce((s,d)=>s+(d.weight||0),0);
   g('pkgTotRecv').textContent  = fmtKg(totRecv)+' kg';
   g('pkgTotDisp').textContent  = fmtKg(totDisp)+' kg';
-  g('pkgTotBal').textContent   = fmtKg(totBal)+' kg';
-  g('pkgTotCount').textContent = (pkgRecv.length+pkgDisp.length)+' entries';
+  g('pkgTotBal').textContent   = fmtKg(Math.max(0,totRecv-totDisp))+' kg';
+  g('pkgTotCount').textContent = (pkgRecv.length+pkgDisp.length);
 
   // Receipts table
-  const rTb = g('pkgRecvTbody'), rEm = g('emPkgRecv');
-  if(!pkgRecv.length){ rTb.innerHTML=''; rEm.style.display=''; }
-  else {
+  const rTb=g('pkgRecvTbody'), rEm=g('emPkgRecv');
+  const sortedR=[...pkgRecv].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!sortedR.length){rTb.innerHTML='';rEm.style.display='';}
+  else{
     rEm.style.display='none';
-    const sorted = [...pkgRecv].sort((a,b)=>b.date.localeCompare(a.date));
-    rTb.innerHTML = sorted.map((r,i)=>`<tr>
+    rTb.innerHTML=sortedR.map((r,i)=>`<tr>
       <td style="color:var(--text3)">${i+1}</td>
-      <td>${r.date}</td>
-      <td style="color:var(--text3)">${r.challan}</td>
+      <td>${r.date}</td><td style="color:var(--text3)">${r.challan}</td>
       <td style="font-weight:500">${r.company}</td>
-      <td style="color:var(--blue);font-weight:600">${r.lotNo}</td>
-      <td class="num">${r.bags}</td>
+      <td style="color:var(--blue);font-weight:600">${r.item||'—'}</td>
+      <td class="num">${r.bags||0}</td>
       <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
-      <td>${sBadge(r.status)}</td>
+      <td class="num">${r.price?'₹'+r.price:'—'}</td>
       <td style="color:var(--text3)">${r.remarks||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="delPkg('r','${r.id}')" style="color:var(--red);border-color:var(--red-dim);">🗑</button></td>
     </tr>`).join('');
   }
 
   // Dispatches table
-  const dTb = g('pkgDispTbody'), dEm = g('emPkgDisp');
-  if(!pkgDisp.length){ dTb.innerHTML=''; dEm.style.display=''; }
-  else {
+  const dTb=g('pkgDispTbody'), dEm=g('emPkgDisp');
+  const sortedD=[...pkgDisp].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!sortedD.length){dTb.innerHTML='';dEm.style.display='';}
+  else{
     dEm.style.display='none';
-    const sorted = [...pkgDisp].sort((a,b)=>(parseInt(b.challan)||0)-(parseInt(a.challan)||0));
-    dTb.innerHTML = sorted.map((r,i)=>`<tr>
+    dTb.innerHTML=sortedD.map((r,i)=>`<tr>
       <td style="color:var(--text3)">${i+1}</td>
-      <td>${r.date}</td>
-      <td style="color:var(--text3)">${r.challan}</td>
+      <td>${r.date}</td><td style="color:var(--text3)">${r.challan}</td>
       <td style="font-weight:500">${r.company}</td>
-      <td style="color:var(--blue);font-weight:600">${r.lotNo}</td>
-      <td class="num">${r.bags}</td>
+      <td style="color:var(--blue);font-weight:600">${r.item||'—'}</td>
+      <td class="num">${r.bags||0}</td>
       <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
-      <td>${formBadge(r.form)}</td>
-      <td style="color:var(--text3)">${r.remark||'—'}</td>
+      <td style="color:var(--text3)">${r.lotNo||'—'}</td>
+      <td style="color:var(--text3)">${r.remarks||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="delPkg('d','${r.id}')" style="color:var(--red);border-color:var(--red-dim);">🗑</button></td>
     </tr>`).join('');
+  }
+}
+
+function savePkgRecv(){
+  const date=g('pkg_r_date').value, challan=g('pkg_r_challan').value.trim(),
+        co=g('pkg_r_co').value, item=g('pkg_r_item').value.trim(),
+        bags=parseFloat(g('pkg_r_bags').value)||0,
+        weight=parseFloat(g('pkg_r_weight').value)||0,
+        price=parseFloat(g('pkg_r_price').value)||0,
+        remarks=g('pkg_r_remarks').value.trim();
+  if(!date||!challan||!co||!item){toast('Fill Date, Challan, Company and Item (*)','err');return;}
+  pkgRecv.push({id:'PR'+Date.now(),date,challan,company:co,item,bags,weight,price,remarks});
+  savePkgLocal(); clearPkgForm('r'); renderPkgMat();
+  toast('✓ Packing receipt saved','ok');
+}
+
+function savePkgDisp(){
+  const date=g('pkg_d_date').value, challan=g('pkg_d_challan').value.trim(),
+        co=g('pkg_d_co').value, item=g('pkg_d_item').value.trim(),
+        bags=parseFloat(g('pkg_d_bags').value)||0,
+        weight=parseFloat(g('pkg_d_weight').value)||0,
+        lotNo=g('pkg_d_lot').value.trim(),
+        remarks=g('pkg_d_remarks').value.trim();
+  if(!date||!challan||!co||!item){toast('Fill Date, Challan, Company and Item (*)','err');return;}
+  pkgDisp.push({id:'PD'+Date.now(),date,challan,company:co,item,bags,weight,lotNo,remarks});
+  savePkgLocal(); clearPkgForm('d'); renderPkgMat();
+  toast('✓ Packing dispatch saved','ok');
+}
+
+function delPkg(type,id){
+  if(!confirm('Delete this entry?')) return;
+  if(type==='r') pkgRecv=pkgRecv.filter(r=>r.id!==id);
+  else pkgDisp=pkgDisp.filter(d=>d.id!==id);
+  savePkgLocal(); renderPkgMat();
+  toast('✓ Entry deleted','ok');
+}
+
+function clearPkgForm(type){
+  const td=today();
+  if(type==='r'){
+    ['pkg_r_challan','pkg_r_item','pkg_r_remarks'].forEach(id=>g(id).value='');
+    ['pkg_r_bags','pkg_r_weight','pkg_r_price'].forEach(id=>g(id).value='');
+    g('pkg_r_co').value=''; g('pkg_r_date').value=td;
+  } else {
+    ['pkg_d_challan','pkg_d_item','pkg_d_lot','pkg_d_remarks'].forEach(id=>g(id).value='');
+    ['pkg_d_bags','pkg_d_weight'].forEach(id=>g(id).value='');
+    g('pkg_d_co').value=''; g('pkg_d_date').value=td;
   }
 }
 
@@ -2728,7 +2808,7 @@ async function saveReceive(skipDupCheck=false) {
     shadeCard:g('r_shadecard').value.trim(),
     paperCone:parseFloat(g('r_papercone').value)||0,
     status:g('r_status').value, remarks:g('r_remarks').value.trim(),
-    isPacking: g('r_ispacking').checked
+    isPacking: false
   };
   recv.push(e); saveLocal();
   const row=[e.id,e.date,e.challan,e.company,e.lotNo,e.altLot,e.shade,e.count,e.tpi,e.blend,
@@ -3045,7 +3125,7 @@ async function saveDispatch() {
   const btn=g('btnD'); btn.disabled=true; g('dSt').innerHTML='<span class="spin"></span> Saving…';
 
   // Build all entry objects first, then push to local array, then save to sheets
-  const isPacking = g('d_ispacking').checked;
+  const isPacking = false;
   const newEntries = entries.map(en => ({
     id:'D'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
     date, challan, company:co, lotNo:en.lot,
@@ -3194,13 +3274,11 @@ function renderR() {
   ].filter(Boolean).join('');
   if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
   tb.innerHTML=rows.map((r,i)=>{
-    const packBadge = r.isPacking ? ' <span style="font-size:9px;background:#f3f0ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:10px;padding:1px 6px;font-weight:600;">📦 PKG</span>' : '';
-    const rowStyle = r.isPacking ? 'background:rgba(109,40,217,.04);' : '';
     const cells = [
       rcv('num')    && `<td style="color:var(--text3)">${i+1}</td>`,
       rcv('date')   && `<td>${r.date}</td>`,
       rcv('challan')&& `<td style="color:var(--text3)">${r.challan}</td>`,
-      rcv('company')&& `<td style="font-weight:500">${r.company}${packBadge}</td>`,
+      rcv('company')&& `<td style="font-weight:500">${r.company}</td>`,
       rcv('lotNo')  && `<td style="color:var(--blue);font-weight:600">${r.lotNo}</td>`,
       rcv('altLot') && `<td style="color:var(--text3)">${r.altLot||'—'}</td>`,
       rcv('shade')  && `<td>${r.shade||'—'}</td>`,
@@ -3217,7 +3295,7 @@ function renderR() {
       rcv('status') && `<td>${sBadge(r.status)}</td>`,
       rcv('actions')&& `<td style="display:flex;gap:4px;"><button class="btn btn-ghost btn-sm" onclick="openEditModal('recv','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button><button class="btn btn-ghost btn-sm" onclick="del('recv','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button></td>`,
     ].filter(Boolean).join('');
-    return `<tr style="${rowStyle}">${cells}</tr>`;
+    return `<tr>${cells}</tr>`;
   }).join('');
 }
 
@@ -3295,13 +3373,11 @@ function renderD() {
   if(!rows.length){tb.innerHTML='';em.style.display='block';return;} em.style.display='none';
   tb.innerHTML=rows.map((r,i)=>{
     const totalVal = (r.weight||0)*(r.rate||0);
-    const packBadge = r.isPacking ? ' <span style="font-size:9px;background:#f3f0ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:10px;padding:1px 6px;font-weight:600;">📦 PKG</span>' : '';
-    const rowStyle = r.isPacking ? 'background:rgba(109,40,217,.04);' : '';
     const cells = [
       dco('num')    && `<td style="color:var(--text3)">${i+1}</td>`,
       dco('date')   && `<td>${r.date}</td>`,
       dco('challan')&& `<td style="color:var(--text3)">${r.challan}</td>`,
-      dco('company')&& `<td style="font-weight:500">${r.company}${packBadge}</td>`,
+      dco('company')&& `<td style="font-weight:500">${r.company}</td>`,
       dco('lotNo')  && `<td style="color:var(--blue);font-weight:600">${r.lotNo}</td>`,
       dco('shade')  && `<td>${r.shade||'—'}</td>`,
       dco('count')  && `<td><span class="badge b-blue">${r.count||'—'}</span></td>`,
@@ -3315,7 +3391,7 @@ function renderD() {
       dco('plant')  && `<td style="color:var(--text3)">${r.plant||'—'}</td>`,
       dco('actions')&& `<td style="display:flex;gap:4px;"><button class="btn btn-ghost btn-sm" onclick="openEditModal('disp','${r.id}')" style="color:var(--blue);border-color:var(--blue-dim);" title="Edit">✎</button><button class="btn btn-ghost btn-sm" onclick="del('disp','${r.id}')" style="color:var(--red);border-color:var(--red-dim);" title="Delete">🗑</button></td>`,
     ].filter(Boolean).join('');
-    return `<tr style="${rowStyle}">${cells}</tr>`;
+    return `<tr>${cells}</tr>`;
   }).join('');
 }
 
@@ -3486,6 +3562,9 @@ function buildLots() {
   if(selCnt.length) rows=rows.filter(r=>selCnt.includes(r.count));
   if(selTpi.length) rows=rows.filter(r=>selTpi.includes(r.tpi));
   if(selShd.length) rows=rows.filter(r=>selShd.includes(r.shade));
+  // Hide completed lots unless checkbox is checked
+  const showCompleted = g('showCompletedLots')?.checked;
+  if(!showCompleted) rows=rows.filter(r=>r.cs!=='Completed');
   rows.sort((a,b)=>b.date.localeCompare(a.date));
 
   const tb=g('tbL'), em=g('emL');
@@ -3880,9 +3959,11 @@ function buildDash() {
     if(d.form==='R'){byCnt[d.count].rKg-=d.weight;byCnt[d.count].rBags-=d.bags;}
     else{byCnt[d.count].dKg+=d.weight;byCnt[d.count].dBags+=d.bags;}
   });
-  g('tbByCnt').innerHTML=Object.entries(byCnt).sort((a,b)=>b[1].rKg-a[1].rKg).map(([k,v])=>{
+  g('tbByCnt').innerHTML=Object.entries(byCnt).sort((a,b)=>b[1].rKg-a[1].rKg)
+    .filter(([k,v])=>Math.max(0,v.rKg-v.dKg)>0.01)  // hide zero-stock counts
+    .map(([k,v])=>{
     const bKg=Math.max(0,v.rKg-v.dKg);return`<tr><td><span class="badge b-blue">${k}</span></td><td class="num" style="font-weight:700;color:var(--green)">${fmtKg(bKg)}</td><td class="num">${Math.max(0,v.rBags-v.dBags)}</td><td class="num">${v.lots.size}</td></tr>`;
-  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No data</td></tr>';
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No stock</td></tr>';
   const byShd={};
   rr.forEach(r=>{if(!r.shade)return;if(!byShd[r.shade])byShd[r.shade]={rKg:0,rBags:0,dKg:0,dBags:0,lots:new Set()};byShd[r.shade].rKg+=r.weight;byShd[r.shade].rBags+=r.bags;byShd[r.shade].lots.add(r.lotNo);});
   dd.forEach(d=>{
@@ -3891,9 +3972,11 @@ function buildDash() {
     if(d.form==='R'){byShd[d.shade].rKg-=d.weight;byShd[d.shade].rBags-=d.bags;}
     else{byShd[d.shade].dKg+=d.weight;byShd[d.shade].dBags+=d.bags;}
   });
-  g('tbByShd').innerHTML=Object.entries(byShd).sort((a,b)=>b[1].rKg-a[1].rKg).map(([k,v])=>{
+  g('tbByShd').innerHTML=Object.entries(byShd).sort((a,b)=>b[1].rKg-a[1].rKg)
+    .filter(([k,v])=>Math.max(0,v.rKg-v.dKg)>0.01)  // hide zero-stock shades
+    .map(([k,v])=>{
     const bKg=Math.max(0,v.rKg-v.dKg);return`<tr><td>${k}</td><td class="num" style="font-weight:700;color:var(--green)">${fmtKg(bKg)}</td><td class="num">${Math.max(0,v.rBags-v.dBags)}</td><td class="num">${v.lots.size}</td></tr>`;
-  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No data</td></tr>';
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No stock</td></tr>';
 }
 
 // ═══════════════════════════════════════════════
@@ -3923,7 +4006,6 @@ function openEditModal(type, id) {
     g('er_vehicle').value       = r.vehicle||'';
     g('er_status').value        = r.status||'Received';
     g('er_remarks').value       = r.remarks||'';
-    g('er_ispacking').checked   = r.isPacking||false;
     g('er_singleconetip').value = r.singleConeTip||'';
     g('er_doubleconetip').value = r.doubleConeTip||'';
     g('er_shadecard').value     = r.shadeCard||'';
@@ -3951,7 +4033,6 @@ function openEditModal(type, id) {
     g('ed_plant').value   = d.plant||'';
     g('ed_vehicle').value = d.vehicle||'';
     g('ed_remark').value  = d.remark||'';
-    g('ed_ispacking').checked = d.isPacking||false;
     openModal('editDispModal');
   }
 }
@@ -3983,7 +4064,6 @@ function saveEdit(type) {
       doubleConeTip:   g('er_doubleconetip').value.trim(),
       shadeCard:       g('er_shadecard').value.trim(),
       paperCone:       parseFloat(g('er_papercone').value)||0,
-      isPacking:       g('er_ispacking').checked
     };
     saveLocal(); renderAll();
     // Update Sheet row
@@ -4018,7 +4098,6 @@ function saveEdit(type) {
       plant:   g('ed_plant').value.trim(),
       vehicle: g('ed_vehicle').value.trim(),
       remark:  g('ed_remark').value.trim(),
-      isPacking: g('ed_ispacking').checked
     };
     saveLocal(); renderAll();
     // Update Sheet row
@@ -4280,7 +4359,6 @@ function clearForm(type){
     ['r_bags','r_weight','r_rate','r_shortage','r_papercone'].forEach(id=>{const el=g(id);if(el)el.value=''});
     g('r_lot').value=''; g('r_co').value=''; g('r_count').value=''; g('r_blend').value='';
     g('r_status').value='Received'; g('r_date').value=td;
-    const rip=g('r_ispacking'); if(rip) rip.checked=false;
     const db=g('recvDupBanner'); if(db) db.classList.remove('show');
     clearRecvPrefill();
   } else {
@@ -4289,7 +4367,6 @@ function clearForm(type){
     const dc=g('d_co'); if(dc) dc.value='';
     const df=g('d_form'); if(df) df.value='D';
     const dd=g('d_date'); if(dd) dd.value=td;
-    const dip=g('d_ispacking'); if(dip) dip.checked=false;
     // Reset challan validation UI
     const cs=g('challanStatus'); if(cs) cs.textContent='';
     g('lotRowsTbody').innerHTML='';
