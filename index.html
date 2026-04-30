@@ -6,164 +6,198 @@
 <title>YarnTrack — Twisting Unit</title>
 <style>
 :root{
-  --bg:#e8edf4;
+  --bg:#f2f3f5;
   --surf:#ffffff;
-  --surf2:#f0f4f9;
-  --surf3:#e4eaf3;
-  --border:#c8d3e0;
-  --amber:#2d6be4;
-  --amber-dim:rgba(45,107,228,.1);
-  --green:#1a7a50;
-  --green-dim:rgba(26,122,80,.1);
-  --red:#c0392b;
-  --red-dim:rgba(192,57,43,.1);
-  --blue:#2d6be4;
-  --blue-dim:rgba(45,107,228,.1);
-  --purple:#5b3ec8;
-  --text:#1c2940;
-  --text2:#3d5070;
-  --text3:#7a8fa8;
+  --surf2:#f7f8f9;
+  --surf3:#eceef2;
+  --border:#dde0e8;
+  --blue:#2563eb;
+  --blue-dim:rgba(37,99,235,.1);
+  --blue-light:#eff4ff;
+  --amber:#d97706;
+  --amber-dim:rgba(217,119,6,.1);
+  --green:#059669;
+  --green-dim:rgba(5,150,105,.1);
+  --red:#dc2626;
+  --red-dim:rgba(220,38,38,.1);
+  --purple:#7c3aed;
+  --purple-dim:rgba(124,58,237,.1);
+  --text:#0f1623;
+  --text2:#374151;
+  --text3:#9ca3af;
   --mono:'Consolas','Courier New',monospace;
   --head:-apple-system,'Segoe UI','Arial',sans-serif;
-  --r:8px;
-  --sh:0 1px 6px rgba(28,41,64,.08),0 4px 16px rgba(28,41,64,.05);
+  --r:10px;
+  --sh:0 1px 3px rgba(15,22,35,.06),0 4px 12px rgba(15,22,35,.04);
+  --sidebar-w:220px;
+  /* THEME COLORS */
+  --nav-bg:#8b0000;        /* Blood Red */
+  --nav-border:#6d0000;
+  --sidebar-bg:#2b2e33;    /* Charcoal */
+  --sidebar-border:#3a3d44;
+  --sidebar-text:rgba(255,255,255,.65);
+  --sidebar-text-hover:#ffffff;
+  --sidebar-active-bg:rgba(255,255,255,.12);
+  --sidebar-label:rgba(255,255,255,.3);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--head);font-size:13px;min-height:100vh;}
-/* NAV */
-.nav{display:flex;align-items:center;justify-content:space-between;padding:13px 28px;background:#1c2940;border-bottom:none;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(28,41,64,.25);}
-.logo{font-family:var(--head);font-size:21px;font-weight:800;color:#ffffff;letter-spacing:-.5px;}
-.logo em{font-style:normal;color:rgba(255,255,255,.45);font-size:12px;font-family:var(--mono);font-weight:400;margin-left:8px;}
-.nav-right{display:flex;align-items:center;gap:10px;}
-.gs-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.2);font-size:11px;color:rgba(255,255,255,.6);}
+body{background:var(--bg);color:var(--text);font-family:var(--head);font-size:13px;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── TOP NAV — BLOOD RED ── */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:54px;background:var(--nav-bg);border-bottom:2px solid var(--nav-border);position:sticky;top:0;z-index:300;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+.logo{font-family:var(--head);font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;display:flex;align-items:center;gap:10px;}
+.logo-icon{width:30px;height:30px;background:rgba(255,255,255,.18);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.logo em{font-style:normal;color:rgba(255,255,255,.5);font-size:11px;font-family:var(--mono);font-weight:400;margin-left:4px;}
+.nav-right{display:flex;align-items:center;gap:7px;}
+.gs-pill{display:flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;border:1px solid rgba(255,255,255,.22);font-size:11px;color:rgba(255,255,255,.65);background:rgba(0,0,0,.15);}
 .gs-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);}
-.gs-dot.on{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);}
-.gs-dot.err{background:#f87171;}
-/* TABS */
-.tabbar{display:flex;padding:0 28px;background:#253450;border-bottom:none;}
-.tb{padding:11px 20px;background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.5);font-family:var(--head);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .18s;}
-.tb:hover{color:rgba(255,255,255,.85);}
-.tb.active{color:#ffffff;border-bottom-color:#5b9ffc;}
-/* LAYOUT */
-.main{padding:22px 28px;max-width:1500px;}
+.gs-dot.on{background:#4ade80;box-shadow:0 0 5px rgba(74,222,128,.6);}
+.gs-dot.err{background:#fca5a5;}
+.nav-btn{padding:5px 13px;border-radius:6px;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.18);color:rgba(255,255,255,.85);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--head);transition:all .15s;}
+.nav-btn:hover{background:rgba(0,0,0,.32);color:#fff;}
+.nav-btn-sync{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35);}
+.nav-btn-danger{background:rgba(0,0,0,.25);border-color:rgba(255,160,160,.35);color:#fca5a5;}
+.nav-btn-danger:hover{background:rgba(0,0,0,.4);}
+
+/* ── APP SHELL ── */
+.app-shell{display:flex;flex:1;min-height:0;}
+
+/* ── LEFT SIDEBAR — CHARCOAL ── */
+.sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;flex-shrink:0;}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px;}
+.sidebar-section{padding:18px 10px 6px;}
+.sidebar-label{font-size:9px;font-weight:800;color:var(--sidebar-label);text-transform:uppercase;letter-spacing:1.4px;padding:0 10px;margin-bottom:4px;}
+.sb{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:none;background:none;cursor:pointer;width:100%;text-align:left;font-family:var(--head);font-size:12.5px;font-weight:500;color:var(--sidebar-text);transition:all .15s;position:relative;}
+.sb:hover{background:rgba(255,255,255,.08);color:var(--sidebar-text-hover);}
+.sb.active{background:var(--sidebar-active-bg);color:#ffffff;font-weight:700;}
+.sb.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:65%;background:#8b0000;border-radius:0 3px 3px 0;}
+.sb-icon{width:27px;height:27px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:rgba(255,255,255,.07);}
+.sb.active .sb-icon{background:rgba(139,0,0,.7);}
+.sb:hover .sb-icon{background:rgba(255,255,255,.12);}
+.sb-text{flex:1;}
+/* Sidebar divider */
+.sidebar-divider{height:1px;background:var(--sidebar-border);margin:6px 14px;}
+
+/* ── MAIN CONTENT — LIGHT GREY ── */
+.main{flex:1;padding:24px 28px;overflow-y:auto;min-width:0;background:var(--bg);}
 .panel{display:none;}
 .panel.active{display:block;}
+
 /* CARDS */
-.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:18px;box-shadow:var(--sh);}
-.card-title{font-family:var(--head);font-size:13px;font-weight:700;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.card{background:var(--surf);border:1.5px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:18px;box-shadow:var(--sh);}
+.card-title{font-family:var(--head);font-size:11px;font-weight:800;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.7px;}
 /* FORM */
-.fg{display:flex;flex-direction:column;gap:5px;}
-.fg label{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
-input,select,textarea{background:#fff;border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12.5px;padding:8px 11px;outline:none;width:100%;transition:border-color .15s;}
-input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.08);}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;font-weight:700;}
+input,select,textarea{background:#fff;border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12.5px;padding:8px 11px;outline:none;width:100%;transition:border-color .12s,box-shadow .12s;}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 input[readonly]{background:var(--surf2);color:var(--text3);cursor:not-allowed;}
-select option{background:#fff;}
+select option{background:#fff;color:var(--text);}
 .grid{display:grid;gap:12px;}
 .g2{grid-template-columns:repeat(2,1fr);}
 .g3{grid-template-columns:repeat(3,1fr);}
 .g4{grid-template-columns:repeat(4,1fr);}
 .g5{grid-template-columns:repeat(5,1fr);}
 .g6{grid-template-columns:repeat(6,1fr);}
-/* PREFILL HIGHLIGHT */
-.prefilled{border-color:var(--blue)!important;background:rgba(26,86,219,.05)!important;}
-/* AUTOFILL BADGE */
-.autofill-hint{display:none;padding:10px 14px;background:rgba(26,86,219,.06);border:1px solid rgba(26,86,219,.2);border-radius:6px;font-size:11px;color:var(--blue);margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;}
+.prefilled{border-color:var(--blue)!important;background:rgba(37,99,235,.04)!important;}
+.autofill-hint{display:none;padding:10px 14px;background:rgba(37,99,235,.05);border:1px solid rgba(37,99,235,.18);border-radius:7px;font-size:11px;color:var(--blue);margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;}
 .autofill-hint.show{display:flex;}
 /* BUTTONS */
-.btn{padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:500;transition:all .18s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
-.btn-amber{background:var(--amber);color:#ffffff;}
-.btn-amber:hover{opacity:.88;}
-.btn-green{background:var(--green);color:#ffffff;}
-.btn-green:hover{opacity:.88;}
-.btn-red{background:var(--red);color:#fff;}
-.btn-red:hover{opacity:.88;}
-.btn-ghost{background:none;border:1px solid var(--border);color:var(--text2);}
-.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
-.btn-blue{background:var(--blue);color:#fff;}
-.btn-blue:hover{opacity:.88;}
+.btn{padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-family:var(--head);font-size:12px;font-weight:600;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
+.btn-amber{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;box-shadow:0 2px 6px rgba(217,119,6,.25);}
+.btn-amber:hover{filter:brightness(1.08);}
+.btn-green{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 2px 6px rgba(5,150,105,.25);}
+.btn-green:hover{filter:brightness(1.08);}
+.btn-red{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 2px 6px rgba(220,38,38,.2);}
+.btn-red:hover{filter:brightness(1.08);}
+.btn-ghost{background:#fff;border:1.5px solid var(--border);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
+.btn-blue{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.25);}
+.btn-blue:hover{filter:brightness(1.08);}
 .btn-sm{padding:5px 11px;font-size:11px;}
-.btn:disabled{opacity:.4;cursor:not-allowed;}
-/* SECTION */
-.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
-.stitle{font-family:var(--head);font-size:17px;font-weight:700;color:var(--text);}
+.btn:disabled{opacity:.38;cursor:not-allowed;}
+/* SECTION HEADER */
+.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.stitle{font-family:var(--head);font-size:18px;font-weight:800;color:var(--text);}
 .stitle small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--text3);margin-left:8px;}
 /* FILTERS */
 .fbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
 .fbar input,.fbar select{width:auto;}
-.chip{padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text3);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s;}
+.chip{padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text3);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
 .chip:hover{border-color:var(--blue);color:var(--blue);}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
 /* TABLE */
-.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);}
+.tw{overflow-x:auto;border-radius:var(--r);border:1.5px solid var(--border);}
 table{width:100%;border-collapse:collapse;}
-thead th{background:var(--surf2);color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:.9px;padding:9px 13px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;font-weight:700;}
-tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
-tbody tr:hover{background:#edf2fb;}
+thead th{background:var(--surf2);color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:.9px;padding:10px 13px;text-align:left;border-bottom:1.5px solid var(--border);white-space:nowrap;font-weight:800;}
+tbody tr{border-bottom:1px solid #eceef3;transition:background .1s;}
+tbody tr:hover{background:#f0f4ff;}
 tbody tr:last-child{border-bottom:none;}
 td{padding:9px 13px;font-size:12px;white-space:nowrap;color:var(--text);}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
 th.num{text-align:right;}
 /* BADGES */
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;}
-.b-green{background:#e0f2e9;color:#14653e;border:1px solid #a8d9be;}
-.b-amber{background:#e8effe;color:#1d52b8;border:1px solid #b3c8f5;}
-.b-red{background:#fce8e6;color:#a82214;border:1px solid #f0b4ae;}
-.b-blue{background:#e8effe;color:#2d6be4;border:1px solid #b3c8f5;}
-.b-purple{background:#ede8fc;color:#4a2fa8;border:1px solid #c5b8f0;}
+.badge{display:inline-block;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
+.b-green{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;}
+.b-amber{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+.b-red{background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;}
+.b-blue{background:#dbeafe;color:#1e3a8a;border:1px solid #93c5fd;}
+.b-purple{background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd;}
 /* KPI CARDS */
-.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
-.kcard{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;}
-.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-.kc-amber::before{background:var(--amber);}
-.kc-green::before{background:var(--green);}
-.kc-red::before{background:var(--red);}
-.kc-blue::before{background:var(--blue);}
-.kc-purple::before{background:var(--purple);}
-.klabel{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px;}
-.kval{font-family:var(--head);font-size:26px;font-weight:800;line-height:1;margin-bottom:3px;}
-.kc-amber .kval{color:var(--amber);}.kc-green .kval{color:var(--green);}
-.kc-red .kval{color:var(--red);}.kc-blue .kval{color:var(--blue);}.kc-purple .kval{color:var(--purple);}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:22px;}
+.kcard{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;box-shadow:var(--sh);}
+.kc-blue{border-left:4px solid var(--blue);}
+.kc-amber{border-left:4px solid var(--amber);}
+.kc-green{border-left:4px solid var(--green);}
+.kc-red{border-left:4px solid var(--red);}
+.kc-purple{border-left:4px solid var(--purple);}
+.klabel{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:8px;font-weight:700;}
+.kval{font-family:var(--head);font-size:28px;font-weight:900;line-height:1;margin-bottom:3px;}
+.kc-blue .kval{color:var(--blue);} .kc-amber .kval{color:var(--amber);}
+.kc-green .kval{color:var(--green);} .kc-red .kval{color:var(--red);}
+.kc-purple .kval{color:var(--purple);}
 .ksub{color:var(--text3);font-size:11px;}
 /* PROGRESS BAR */
 .pbar-wrap{display:flex;align-items:center;gap:7px;}
-.pbar{flex:1;height:4px;background:var(--surf3);border-radius:2px;overflow:hidden;min-width:60px;}
-.pbar-fill{height:100%;border-radius:2px;}
+.pbar{flex:1;height:5px;background:var(--surf3);border-radius:3px;overflow:hidden;min-width:60px;}
+.pbar-fill{height:100%;border-radius:3px;}
 .ppct{font-size:10.5px;color:var(--text3);min-width:32px;text-align:right;}
 /* TOAST */
-#toast{position:fixed;bottom:24px;right:24px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:13px 18px;font-size:12.5px;color:var(--text);z-index:9999;display:none;box-shadow:var(--sh);max-width:320px;}
+#toast{position:fixed;bottom:24px;right:24px;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 18px;font-size:12.5px;color:var(--text);z-index:9999;display:none;box-shadow:0 8px 30px rgba(0,0,0,.14);max-width:320px;}
 #toast.show{display:block;}
-#toast.ok{border-color:var(--green);}
-#toast.err{border-color:var(--red);}
+#toast.ok{border-left:4px solid var(--green);}
+#toast.err{border-left:4px solid var(--red);}
 /* MODAL */
-.mbg{display:none;position:fixed;inset:0;background:rgba(30,36,50,.45);z-index:800;align-items:center;justify-content:center;}
+.mbg{display:none;position:fixed;inset:0;background:rgba(10,14,22,.5);z-index:800;align-items:center;justify-content:center;}
 .mbg.open{display:flex !important;}
-.modal{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:26px;width:90%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto;}
-.modal.modal-wide{max-width:700px;}
-.mtitle{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.modal{background:var(--surf);border:1.5px solid var(--border);border-radius:12px;padding:26px;width:90%;max-width:520px;box-shadow:0 16px 48px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto;}
+.modal.modal-wide{max-width:720px;}
+.mtitle{font-family:var(--head);font-size:15px;font-weight:800;margin-bottom:6px;color:var(--text);}
 .msub{font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.6;}
 .mfooter{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
-/* MERGE MODAL DIFF */
+/* MERGE MODAL */
 .merge-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
 .merge-col-hdr{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px;}
 .merge-field{padding:6px 0;font-size:12px;color:var(--text2);}
-.merge-new{color:var(--amber);}
+.merge-new{color:var(--blue);}
 .merge-result{color:var(--green);font-weight:600;}
-/* MASTER DATA TAGS */
+/* TAGS */
 .tag-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:30px;}
-.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 8px 4px 11px;border-radius:20px;background:var(--surf3);border:1px solid var(--border);font-size:11px;color:var(--text2);}
-.tag-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px 4px 12px;border-radius:6px;background:var(--surf2);border:1.5px solid var(--border);font-size:11px;color:var(--text2);}
+.tag-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:3px;}
 .tag-del:hover{color:var(--red);background:var(--red-dim);}
 /* SPIN */
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:sp .65s linear infinite;}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .65s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* EMPTY */
 .empty{text-align:center;padding:44px 20px;color:var(--text3);}
-.empty-ico{font-size:36px;margin-bottom:10px;opacity:.35;}
+.empty-ico{font-size:36px;margin-bottom:10px;opacity:.3;}
 /* Col panels */
-.col-panel{display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh);}
+.col-panel{display:none;background:var(--surf);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh);}
 .col-panel.open{display:block;}
 /* Multi-select filter */
-.ms-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-family:var(--mono);color:var(--text);cursor:pointer;white-space:nowrap;min-width:120px;justify-content:space-between;}
+.ms-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-size:12px;font-family:var(--mono);color:var(--text2);cursor:pointer;white-space:nowrap;min-width:120px;justify-content:space-between;}
 .ms-btn:hover{border-color:var(--blue);color:var(--blue);}
 .ms-arr{font-size:9px;color:var(--text3);}
 .ms-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:400;min-width:190px;max-height:260px;overflow-y:auto;margin:0!important;padding:10px 12px!important;}
@@ -172,7 +206,13 @@ th.num{text-align:right;}
 .ms-list label{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:2px 0;white-space:nowrap;}
 .ms-list input[type=checkbox]{width:auto;accent-color:var(--blue);}
 /* RESPONSIVE */
-@media(max-width:900px){.nav,.tabbar,.main{padding-left:14px;padding-right:14px;}.g5,.g6{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:repeat(2,1fr);}.kgrid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .main{padding:16px;}
+  .g5,.g6{grid-template-columns:repeat(3,1fr);}
+  .g4{grid-template-columns:repeat(2,1fr);}
+  .kgrid{grid-template-columns:repeat(2,1fr);}
+}
 @media(max-width:600px){.g3,.g4,.g5,.g6{grid-template-columns:repeat(2,1fr);}.g2{grid-template-columns:1fr;}}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -181,27 +221,69 @@ th.num{text-align:right;}
 
 <!-- NAV -->
 <div class="nav">
-  <div class="logo">YarnTrack <em id="unitName">Twisting Unit</em></div>
+  <div class="logo">
+    <div class="logo-icon">🧵</div>
+    YarnTrack <em id="unitName">Twisting Unit</em>
+  </div>
   <div class="nav-right">
     <div class="gs-pill"><div class="gs-dot" id="gsDot"></div><span id="gsLbl">Not connected</span></div>
-    <button class="btn btn-sm" onclick="openModal('masterModal')" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);">🗂 Master Data</button>
-    <button class="btn btn-sm" onclick="openModal('cfgModal')" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);">⚙ Settings</button>
-    <button class="btn btn-sm" onclick="syncNow()" style="background:rgba(91,159,252,.25);color:#a8c8ff;border:1px solid rgba(91,159,252,.3);">↺ Sync</button>
-    <button class="btn btn-sm" onclick="cleanDuplicatesFromSheet()" style="background:rgba(192,57,43,.2);color:#f87171;border:1px solid rgba(192,57,43,.3);" title="Remove duplicate entries from Google Sheet">🧹 Clean Dupes</button>
+    <button class="nav-btn" onclick="openModal('masterModal')">🗂 Master Data</button>
+    <button class="nav-btn" onclick="openModal('cfgModal')">⚙ Settings</button>
+    <button class="nav-btn nav-btn-sync" onclick="syncNow()">↺ Sync</button>
+    <button class="nav-btn nav-btn-danger" onclick="cleanDuplicatesFromSheet()" title="Remove duplicate entries">🧹 Clean Dupes</button>
   </div>
 </div>
 
-<!-- TABS -->
-<div class="tabbar">
-  <button class="tb active" onclick="go('recv')">📥 Order Receive</button>
-  <button class="tb" onclick="go('disp')">📤 Dispatch</button>
-  <button class="tb" onclick="go('lots')">🗂 Lot Status</button>
-  <button class="tb" onclick="go('dash')">📊 Dashboard</button>
-  <button class="tb" onclick="go('prod')">⚙ Production</button>
-  <button class="tb" onclick="go('pack')">📦 Packed Yarn</button>
-</div>
+<!-- APP SHELL -->
+<div class="app-shell">
 
-<div class="main">
+  <!-- LEFT SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <button class="sb active" data-tab="dash" onclick="go('dash')">
+        <div class="sb-icon">📊</div>
+        <span class="sb-text">Dashboard</span>
+      </button>
+      <button class="sb" data-tab="lots" onclick="go('lots')">
+        <div class="sb-icon">🗂</div>
+        <span class="sb-text">Lot Status</span>
+      </button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Operations</div>
+      <button class="sb" data-tab="recv" onclick="go('recv')">
+        <div class="sb-icon">📥</div>
+        <span class="sb-text">Order Receive</span>
+      </button>
+      <button class="sb" data-tab="pack" onclick="go('pack')">
+        <div class="sb-icon">📦</div>
+        <span class="sb-text">Packed Yarn</span>
+      </button>
+      <button class="sb" data-tab="disp" onclick="go('disp')">
+        <div class="sb-icon">📤</div>
+        <span class="sb-text">Dispatch</span>
+      </button>
+      <button class="sb" data-tab="pkgmat" onclick="go('pkgmat')">
+        <div class="sb-icon">🧴</div>
+        <span class="sb-text">Packing Material</span>
+      </button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Planning</div>
+      <button class="sb" data-tab="prod" onclick="go('prod')">
+        <div class="sb-icon">⚙</div>
+        <span class="sb-text">Production</span>
+      </button>
+      <button class="sb" data-tab="tfovis" onclick="go('tfovis')">
+        <div class="sb-icon">📈</div>
+        <span class="sb-text">TFO Visibility</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
 
 <!-- ════════════════════════════════════════ -->
 <!-- TAB 1 — ORDER RECEIVE                    -->
@@ -790,7 +872,200 @@ th.num{text-align:right;}
 
 </div>
 
-</div><!-- /main -->
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 7 — PACKING MATERIAL                 -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-pkgmat" class="panel">
+  <div class="shdr">
+    <div class="stitle">Packing Material <small>Track packing material receipts &amp; dispatches separately</small></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="renderPkgMat()">↺ Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadExcel('pkgmat')" style="color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
+      <button class="btn btn-ghost btn-sm" onclick="printTab('pkgmat')">🖨 Print</button>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kgrid" style="margin-bottom:18px;">
+    <div class="kcard kc-blue"><div class="klabel">Total Pkg Received (kg)</div><div class="kval" id="pkgTotRecv">—</div></div>
+    <div class="kcard kc-red"><div class="klabel">Total Pkg Dispatched (kg)</div><div class="kval" id="pkgTotDisp">—</div></div>
+    <div class="kcard kc-green"><div class="klabel">Pkg Balance (kg)</div><div class="kval" id="pkgTotBal">—</div></div>
+    <div class="kcard kc-amber"><div class="klabel">Pkg Entries</div><div class="kval" id="pkgTotCount">—</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+    <!-- RECEIPTS -->
+    <div>
+      <div class="shdr" style="margin-bottom:10px;">
+        <div class="stitle" style="font-size:14px;">📥 Packing Receipts</div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th>
+              <th class="num">Bags</th><th class="num">Weight (kg)</th><th>Status</th><th>Remarks</th>
+            </tr></thead>
+            <tbody id="pkgRecvTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="emPkgRecv" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No packing receipts. Mark entries as Packing Material in Order Receive.</p></div>
+    </div>
+
+    <!-- DISPATCHES -->
+    <div>
+      <div class="shdr" style="margin-bottom:10px;">
+        <div class="stitle" style="font-size:14px;">📤 Packing Dispatches</div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Lot No.</th>
+              <th class="num">Bags</th><th class="num">Weight (kg)</th><th>Form</th><th>Remark</th>
+            </tr></thead>
+            <tbody id="pkgDispTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="emPkgDisp" class="empty" style="display:none;"><div class="empty-ico">📭</div><p>No packing dispatches. Mark entries as Packing Material in Dispatch.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TAB 8 — TFO VISIBILITY                   -->
+<!-- ════════════════════════════════════════ -->
+<div id="p-tfovis" class="panel">
+  <div class="shdr">
+    <div class="stitle">TFO Production Planner <small>Multi-lot planning with billing &amp; profit analysis</small></div>
+    <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <!-- SCOPED STYLES FOR TFO PLANNER -->
+  <style>
+    #tfoPlanner{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#333;}
+    #tfoPlanner .tp-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:24px 28px;border-radius:10px;margin-bottom:20px;text-align:center;}
+    #tfoPlanner .tp-header h1{font-size:1.8em;margin-bottom:6px;}
+    #tfoPlanner .tp-header p{opacity:.9;font-size:1em;}
+    #tfoPlanner .tp-section{background:#f8f9fa;padding:20px 24px;margin-bottom:18px;border-radius:10px;border-left:5px solid #667eea;}
+    #tfoPlanner .tp-section h2{color:#667eea;margin-bottom:16px;font-size:1.3em;display:flex;align-items:center;gap:8px;}
+    #tfoPlanner .tp-section h3{color:#764ba2;margin-bottom:12px;margin-top:16px;font-size:1.1em;}
+    #tfoPlanner .tp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:14px;}
+    #tfoPlanner .tp-fg{display:flex;flex-direction:column;gap:5px;}
+    #tfoPlanner .tp-fg label{font-weight:600;font-size:13px;color:#333;}
+    #tfoPlanner .tp-fg input,#tfoPlanner .tp-fg select{padding:9px 11px;border:2px solid #e0e0e0;border-radius:7px;font-size:13px;font-family:inherit;transition:border-color .2s;width:100%;}
+    #tfoPlanner .tp-fg input:focus,#tfoPlanner .tp-fg select:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.1);}
+    #tfoPlanner .tp-fg .unit{font-size:11px;color:#888;margin-top:2px;}
+    #tfoPlanner .lot-card{background:white;padding:18px 20px;border-radius:10px;margin-bottom:16px;border:2px solid #e0e0e0;}
+    #tfoPlanner .lot-card .lot-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+    #tfoPlanner .lot-card .lot-title{font-weight:700;font-size:1.1em;color:#667eea;}
+    #tfoPlanner .lot-card h4{color:#667eea;margin:14px 0 10px;font-size:1em;}
+    #tfoPlanner .tp-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:10px 22px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+    #tfoPlanner .tp-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(102,126,234,.3);}
+    #tfoPlanner .tp-btn-add{background:linear-gradient(135deg,#28a745 0%,#20c997 100%);}
+    #tfoPlanner .tp-btn-remove{background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);padding:6px 14px;font-size:12px;}
+    #tfoPlanner .tp-btn-calc{width:100%;padding:13px;font-size:1em;margin-top:16px;}
+    #tfoPlanner .tp-results{margin-top:20px;}
+    #tfoPlanner .tp-result-card{background:white;padding:20px 24px;border-radius:10px;margin-bottom:16px;box-shadow:0 3px 8px rgba(0,0,0,.08);border-left:5px solid #667eea;}
+    #tfoPlanner .tp-result-card h3{color:#667eea;margin-bottom:12px;font-size:1.2em;}
+    #tfoPlanner .tp-result-card h4{color:#764ba2;margin:12px 0 8px;font-size:1em;}
+    #tfoPlanner .tp-alert{padding:13px 18px;border-radius:7px;margin-bottom:14px;font-weight:500;}
+    #tfoPlanner .tp-alert-success{background:#d4edda;color:#155724;border-left:5px solid #28a745;}
+    #tfoPlanner .tp-alert-warning{background:#fff3cd;color:#856404;border-left:5px solid #ffc107;}
+    #tfoPlanner .tp-alert-danger{background:#f8d7da;color:#721c24;border-left:5px solid #dc3545;}
+    #tfoPlanner .tp-summary-box{padding:22px 28px;border-radius:10px;margin-bottom:16px;text-align:center;}
+    #tfoPlanner .tp-profit{background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:white;}
+    #tfoPlanner .tp-loss{background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:white;}
+    #tfoPlanner .tp-summary-box h3{font-size:1.3em;margin-bottom:14px;}
+    #tfoPlanner .tp-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:14px;}
+    #tfoPlanner .tp-metric{background:rgba(255,255,255,.2);padding:16px;border-radius:8px;}
+    #tfoPlanner .tp-metric-label{font-size:12px;opacity:.9;margin-bottom:6px;}
+    #tfoPlanner .tp-metric-value{font-size:1.7em;font-weight:700;}
+    #tfoPlanner .tp-mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;}
+    #tfoPlanner .tp-mini-card{padding:12px;border-radius:8px;}
+    #tfoPlanner .tp-mini-card .tp-mini-label{font-size:11px;color:#666;margin-bottom:4px;}
+    #tfoPlanner .tp-mini-card .tp-mini-val{font-size:1.3em;font-weight:700;}
+    #tfoPlanner .tp-cost-box{background:#fff;padding:16px;border-radius:8px;border:2px solid #e0e0e0;margin-top:12px;}
+    #tfoPlanner .tp-cost-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:13px;}
+    #tfoPlanner .tp-cost-row:last-child{border-bottom:none;}
+    #tfoPlanner .tp-cost-label{font-weight:600;color:#555;}
+    #tfoPlanner .tp-cost-val{color:#667eea;font-weight:700;}
+    #tfoPlanner .tp-total-row{background:#f8f9fa;padding:10px 12px;border-radius:5px;margin-top:8px;}
+    #tfoPlanner .tp-calc-detail{background:#f0f4ff;padding:12px 16px;border-radius:8px;margin-top:12px;border-left:3px solid #667eea;}
+    #tfoPlanner .tp-calc-detail h4{color:#667eea;margin-bottom:8px;font-size:13px;}
+    #tfoPlanner .tp-calc-step{padding:5px 0;font-family:'Courier New',monospace;font-size:12px;color:#333;}
+    #tfoPlanner .tp-highlight{background:#fff3cd;padding:1px 5px;border-radius:3px;font-weight:600;}
+    #tfoPlanner table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+    #tfoPlanner th{background:#667eea;color:white;padding:10px 12px;text-align:left;font-weight:600;}
+    #tfoPlanner td{padding:10px 12px;border-bottom:1px solid #e0e0e0;}
+    #tfoPlanner tr:hover td{background:#f8f9fa;}
+  </style>
+
+  <div id="tfoPlanner">
+    <div class="tp-header">
+      <h1>🏭 TFO Production Planner</h1>
+      <p>Multi-Lot Planning with Billing &amp; Profit Analysis</p>
+    </div>
+
+    <!-- Machine Config -->
+    <div class="tp-section">
+      <h2>🔧 Machine Configuration <small style="font-size:.7em;color:#999;">(common for all lots)</small></h2>
+      <div class="tp-grid" style="max-width:320px;">
+        <div class="tp-fg">
+          <label for="tp_ports">Ports per TFO Machine</label>
+          <input type="number" id="tp_ports" value="156">
+          <span class="unit">Standard: 156 ports per machine</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Break Times -->
+    <div class="tp-section">
+      <h2>⏰ Break Times <small style="font-size:.7em;color:#999;">(common for all lots)</small></h2>
+      <div class="tp-grid">
+        <div class="tp-fg"><label>Lunch Break (min)</label><input type="number" id="tp_lunch" value="60"><span class="unit">Cheese winding lunch break</span></div>
+        <div class="tp-fg"><label>Transport — Cheese Winding (min)</label><input type="number" id="tp_trans_cheese" value="60"></div>
+        <div class="tp-fg"><label>Cleaning Break (min)</label><input type="number" id="tp_clean" value="30"></div>
+        <div class="tp-fg"><label>Transport — TFO (min)</label><input type="number" id="tp_trans_tfo" value="60"></div>
+      </div>
+    </div>
+
+    <!-- Labour & Costs -->
+    <div class="tp-section">
+      <h2>💰 Labour &amp; Operating Costs</h2>
+      <h3>Cheese Winding Operator</h3>
+      <div class="tp-grid">
+        <div class="tp-fg"><label>Base Salary per Operator</label><input type="number" id="tp_cheese_base" value="650"><span class="unit">₹ per operator per shift</span></div>
+        <div class="tp-fg"><label>Extra Charges per Operator</label><input type="number" id="tp_cheese_extra" value="0"><span class="unit">₹ per operator per shift</span></div>
+      </div>
+      <h3>TFO Operator</h3>
+      <div class="tp-grid">
+        <div class="tp-fg"><label>Base Salary (up to 3 machines)</label><input type="number" id="tp_tfo_base" value="625"><span class="unit">₹ per shift (covers 3 TFO machines)</span></div>
+        <div class="tp-fg"><label>Extra per Additional Machine</label><input type="number" id="tp_tfo_extra" value="170"><span class="unit">₹ per machine beyond 3</span></div>
+      </div>
+      <h3>Electricity</h3>
+      <div class="tp-grid" style="max-width:320px;">
+        <div class="tp-fg"><label>Power Cost per TFO Machine</label><input type="number" id="tp_power" value="1000"><span class="unit">₹ per TFO machine per shift</span></div>
+      </div>
+    </div>
+
+    <!-- Lots -->
+    <div class="tp-section">
+      <h2>📦 Production Lots</h2>
+      <div id="tp_lots_container"></div>
+      <button class="tp-btn tp-btn-add" onclick="tpAddLot()">➕ Add New Lot</button>
+    </div>
+
+    <button class="tp-btn tp-btn-calc" onclick="tpCalculate()">🚀 Calculate Production Plan &amp; Profit/Loss</button>
+
+    <div id="tp_results" class="tp-results" style="display:none;"></div>
+  </div>
+</div>
+
+  </div><!-- /main -->
+</div><!-- /app-shell -->
 
 <!-- ════════════════════════════════════════ -->
 <!-- MASTER DATA MODAL                        -->
@@ -965,6 +1240,10 @@ th.num{text-align:right;}
           <span style="color:var(--text2);">📦 Packing Material</span>
         </label>
       </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('editRecvModal')">Cancel</button>
+      <button class="btn btn-amber" onclick="saveEdit('recv')">✓ Save Changes</button>
     </div>
   </div>
 </div>
@@ -1349,6 +1628,7 @@ window.addEventListener('DOMContentLoaded', () => {
   loadCfg(); loadLocal(); loadMaster();
   initColVis(); initRecvColVis(); initDispColVis();
   populateAll(); renderAll();
+  go('dash'); // start on dashboard
 
   // Init Google Auth — retry until GIS script is loaded (async defer)
   function tryInitGoogleAuth() {
@@ -1838,6 +2118,286 @@ async function syncSheets() {
   }
 }
 function syncNow() { syncSheets(); }
+
+// ═══════════════════════════════════════════════
+// PACKING MATERIAL TAB
+// ═══════════════════════════════════════════════
+function renderPkgMat() {
+  const pkgRecv = recv.filter(r=>r.isPacking);
+  const pkgDisp = disp.filter(d=>d.isPacking);
+
+  const totRecv = pkgRecv.reduce((s,r)=>s+r.weight,0);
+  const totDisp = pkgDisp.reduce((s,d)=>s+d.weight,0);
+  const totBal  = totRecv - totDisp;
+
+  g('pkgTotRecv').textContent  = fmtKg(totRecv)+' kg';
+  g('pkgTotDisp').textContent  = fmtKg(totDisp)+' kg';
+  g('pkgTotBal').textContent   = fmtKg(totBal)+' kg';
+  g('pkgTotCount').textContent = (pkgRecv.length+pkgDisp.length)+' entries';
+
+  // Receipts table
+  const rTb = g('pkgRecvTbody'), rEm = g('emPkgRecv');
+  if(!pkgRecv.length){ rTb.innerHTML=''; rEm.style.display=''; }
+  else {
+    rEm.style.display='none';
+    const sorted = [...pkgRecv].sort((a,b)=>b.date.localeCompare(a.date));
+    rTb.innerHTML = sorted.map((r,i)=>`<tr>
+      <td style="color:var(--text3)">${i+1}</td>
+      <td>${r.date}</td>
+      <td style="color:var(--text3)">${r.challan}</td>
+      <td style="font-weight:500">${r.company}</td>
+      <td style="color:var(--blue);font-weight:600">${r.lotNo}</td>
+      <td class="num">${r.bags}</td>
+      <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
+      <td>${sBadge(r.status)}</td>
+      <td style="color:var(--text3)">${r.remarks||'—'}</td>
+    </tr>`).join('');
+  }
+
+  // Dispatches table
+  const dTb = g('pkgDispTbody'), dEm = g('emPkgDisp');
+  if(!pkgDisp.length){ dTb.innerHTML=''; dEm.style.display=''; }
+  else {
+    dEm.style.display='none';
+    const sorted = [...pkgDisp].sort((a,b)=>(parseInt(b.challan)||0)-(parseInt(a.challan)||0));
+    dTb.innerHTML = sorted.map((r,i)=>`<tr>
+      <td style="color:var(--text3)">${i+1}</td>
+      <td>${r.date}</td>
+      <td style="color:var(--text3)">${r.challan}</td>
+      <td style="font-weight:500">${r.company}</td>
+      <td style="color:var(--blue);font-weight:600">${r.lotNo}</td>
+      <td class="num">${r.bags}</td>
+      <td class="num" style="font-weight:600">${fmtKg(r.weight)}</td>
+      <td>${formBadge(r.form)}</td>
+      <td style="color:var(--text3)">${r.remark||'—'}</td>
+    </tr>`).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TFO PRODUCTION PLANNER (full multi-lot)
+// ═══════════════════════════════════════════════
+let tpLotCounter = 0;
+
+function calcTFOVis() { /* legacy hook — no-op, planner is self-contained */ }
+
+function tpAddLot() {
+  tpLotCounter++;
+  const id = `tplot_${tpLotCounter}`;
+  const html = `
+  <div class="lot-card" id="${id}">
+    <div class="lot-header">
+      <span class="lot-title">Lot #${tpLotCounter}</span>
+      <button class="tp-btn tp-btn-remove" onclick="tpRemoveLot('${id}')">🗑 Remove</button>
+    </div>
+    <div class="tp-grid">
+      <div class="tp-fg"><label>Lot Number / Name</label><input type="text" class="tp-lot-number" value="A${tpLotCounter}23"></div>
+      <div class="tp-fg"><label>No. of TFO Machines</label><input type="number" class="tp-num-tfo" value="4"><span class="unit">TFO machines for this lot</span></div>
+      <div class="tp-fg"><label>No. of Drums</label><input type="number" class="tp-num-drums" value="60"><span class="unit">Drums in cheese winding</span></div>
+      <div class="tp-fg"><label>Billing Rate (₹/kg)</label><input type="number" class="tp-billing-rate" value="50" step="0.01"></div>
+    </div>
+    <h4>🧵 Yarn Parameters</h4>
+    <div class="tp-grid">
+      <div class="tp-fg"><label>RPM</label><input type="number" class="tp-rpm" value="6500"></div>
+      <div class="tp-fg"><label>TPI</label><input type="number" class="tp-tpi" value="16.5" step="0.1"></div>
+      <div class="tp-fg"><label>Yarn Count (Ne)</label><input type="number" class="tp-count" value="30" step="0.1"></div>
+    </div>
+    <h4>🧀 Cheese Winding Parameters</h4>
+    <div class="tp-grid">
+      <div class="tp-fg"><label>Single Cone Weight (kg)</label><input type="number" class="tp-single-cone" value="2" step="0.1"></div>
+      <div class="tp-fg"><label>Cones Combined per Tube</label><input type="number" class="tp-cones-per-tube" value="2"></div>
+      <div class="tp-fg"><label>Tube Weight (kg)</label><input type="number" class="tp-tube-weight" value="1" step="0.1"></div>
+      <div class="tp-fg"><label>Conversion Time (min)</label><input type="number" class="tp-conv-time" value="40"></div>
+      <div class="tp-fg"><label>Refill Time (min)</label><input type="number" class="tp-refill-time" value="35"></div>
+    </div>
+    <h4>🔄 TFO Loss Parameters</h4>
+    <div class="tp-grid">
+      <div class="tp-fg"><label>Doubled Cone Weight (kg)</label><input type="number" class="tp-doubled-cone" value="2" step="0.1"></div>
+      <div class="tp-fg"><label>Start Loss (min)</label><input type="number" class="tp-start-loss" value="45"></div>
+      <div class="tp-fg"><label>Tube Change Loss (min)</label><input type="number" class="tp-tube-loss" value="45"></div>
+    </div>
+  </div>`;
+  g('tp_lots_container').insertAdjacentHTML('beforeend', html);
+}
+
+function tpRemoveLot(id) {
+  const el = g(id); if(el) el.remove();
+}
+
+function tpCalcLot(lot, ports, lunch, transCheese, clean, transTFO) {
+  const cycleTime       = lot.convTime + lot.refillTime;
+  const breaksCheese    = lunch + transCheese + clean;
+  const effTimeCheese   = 720 - breaksCheese;
+  const cyclesPerDrum   = effTimeCheese / cycleTime;
+  const totalTubesPerDrum = cyclesPerDrum;
+  const totalSupply     = totalTubesPerDrum * lot.tubeWeight * lot.numDrums;
+
+  const prodPerPort12h  = (((lot.rpm * 2.077) / (lot.tpi * (lot.count / 2))) / 8 / 144) * 12;
+  const totalPorts      = lot.numTFO * ports;
+  const idealProduction = prodPerPort12h * totalPorts;
+  const perHrProd       = prodPerPort12h / 12;
+  const tubesPerPort    = prodPerPort12h / lot.tubeWeight;
+  const stops           = tubesPerPort - 1;
+  const tubeLoss        = stops * lot.tubeLoss;
+  const totalLoss       = lot.startLoss + lot.tubeLoss + tubeLoss;
+  const effTimeTFO      = 720 - totalLoss;
+  const actualProd      = idealProduction * (effTimeTFO / 720);
+
+  const isViable        = totalSupply >= actualProd;
+  const effRatio        = (totalSupply / actualProd) * 100;
+  const revenue         = actualProd * lot.billingRate;
+
+  return { cyclesPerDrum, totalTubesPerDrum, totalSupply, prodPerPort12h, totalPorts,
+    idealProduction, perHrProd, tubesPerPort, stops, tubeLoss, totalLoss, effTimeTFO,
+    actualProd, isViable, effRatio, revenue };
+}
+
+function tpCalculate() {
+  const ports       = parseFloat(g('tp_ports').value)||156;
+  const lunch       = parseFloat(g('tp_lunch').value)||60;
+  const transCheese = parseFloat(g('tp_trans_cheese').value)||60;
+  const clean       = parseFloat(g('tp_clean').value)||30;
+  const transTFO    = parseFloat(g('tp_trans_tfo').value)||60;
+  const cheeseBase  = parseFloat(g('tp_cheese_base').value)||650;
+  const cheeseExtra = parseFloat(g('tp_cheese_extra').value)||0;
+  const tfoBase     = parseFloat(g('tp_tfo_base').value)||625;
+  const tfoExtra    = parseFloat(g('tp_tfo_extra').value)||170;
+  const power       = parseFloat(g('tp_power').value)||1000;
+
+  const cards = g('tp_lots_container').querySelectorAll('.lot-card');
+  if(!cards.length){ toast('Add at least one lot','err'); return; }
+
+  const results=[]; let totalRev=0, totalMachines=0, allViable=true;
+
+  cards.forEach(card=>{
+    const lot={
+      lotNumber: card.querySelector('.tp-lot-number').value,
+      numTFO:    parseFloat(card.querySelector('.tp-num-tfo').value)||4,
+      numDrums:  parseFloat(card.querySelector('.tp-num-drums').value)||60,
+      billingRate:parseFloat(card.querySelector('.tp-billing-rate').value)||50,
+      rpm:       parseFloat(card.querySelector('.tp-rpm').value)||6500,
+      tpi:       parseFloat(card.querySelector('.tp-tpi').value)||16.5,
+      count:     parseFloat(card.querySelector('.tp-count').value)||30,
+      singleCone:parseFloat(card.querySelector('.tp-single-cone').value)||2,
+      conesPerTube:parseFloat(card.querySelector('.tp-cones-per-tube').value)||2,
+      tubeWeight:parseFloat(card.querySelector('.tp-tube-weight').value)||1,
+      convTime:  parseFloat(card.querySelector('.tp-conv-time').value)||40,
+      refillTime:parseFloat(card.querySelector('.tp-refill-time').value)||35,
+      doubledCone:parseFloat(card.querySelector('.tp-doubled-cone').value)||2,
+      startLoss: parseFloat(card.querySelector('.tp-start-loss').value)||45,
+      tubeLoss:  parseFloat(card.querySelector('.tp-tube-loss').value)||45,
+    };
+    const res = tpCalcLot(lot, ports, lunch, transCheese, clean, transTFO);
+    results.push({lot, res});
+    totalRev      += res.revenue;
+    totalMachines += lot.numTFO;
+    if(!res.isViable) allViable=false;
+  });
+
+  // Costs
+  const cheeseCost  = 1 * (cheeseBase + cheeseExtra);
+  const tfoCost     = tfoBase + (totalMachines>3 ? (totalMachines-3)*tfoExtra : 0);
+  const elecCost    = totalMachines * power;
+  const totalCost   = cheeseCost + tfoCost + elecCost;
+  const profit      = totalRev - totalCost;
+  const isProfitable= profit >= 0;
+
+  let html = '';
+
+  // Overall status
+  html += `<div class="tp-alert ${allViable?'tp-alert-success':'tp-alert-danger'}">
+    ${allViable?'✅ <strong>ALL LOTS VIABLE!</strong> All production lots can proceed with current setup.'
+              :'⚠️ <strong>SOME LOTS ARE NOT VIABLE!</strong> Adjustments required for certain lots.'}
+  </div>`;
+
+  // Profit/loss box
+  html += `<div class="tp-summary-box ${isProfitable?'tp-profit':'tp-loss'}">
+    <h3>${isProfitable?'📈 PROFIT ANALYSIS':'📉 LOSS ANALYSIS'}</h3>
+    <div class="tp-metrics">
+      <div class="tp-metric"><div class="tp-metric-label">Total Revenue</div><div class="tp-metric-value">₹${totalRev.toFixed(2)}</div></div>
+      <div class="tp-metric"><div class="tp-metric-label">Total Expenses</div><div class="tp-metric-value">₹${totalCost.toFixed(2)}</div></div>
+      <div class="tp-metric"><div class="tp-metric-label">${isProfitable?'Net Profit':'Net Loss'}</div><div class="tp-metric-value">₹${Math.abs(profit).toFixed(2)}</div></div>
+      <div class="tp-metric"><div class="tp-metric-label">Profit Margin</div><div class="tp-metric-value">${totalRev>0?((profit/totalRev)*100).toFixed(2):0}%</div></div>
+    </div>
+  </div>`;
+
+  // Cost breakdown
+  html += `<div class="tp-result-card">
+    <h3>💰 Cost Breakdown</h3>
+    <div class="tp-cost-box">
+      <div class="tp-cost-row"><span class="tp-cost-label">Cheese Winding Operator (1 operator)</span><span class="tp-cost-val">₹${cheeseCost.toFixed(2)}</span></div>
+      <div class="tp-cost-row"><span class="tp-cost-label">TFO Operators (${totalMachines} machine${totalMachines>1?'s':''}${totalMachines>3?' — base + '+(totalMachines-3)+' extra':''})</span><span class="tp-cost-val">₹${tfoCost.toFixed(2)}</span></div>
+      <div class="tp-cost-row"><span class="tp-cost-label">Electricity (${totalMachines} TFO machines × ₹${power})</span><span class="tp-cost-val">₹${elecCost.toFixed(2)}</span></div>
+      <div class="tp-cost-row tp-total-row"><span class="tp-cost-label"><strong>Total Expenses</strong></span><span class="tp-cost-val"><strong>₹${totalCost.toFixed(2)}</strong></span></div>
+      <div class="tp-cost-row tp-total-row" style="background:${isProfitable?'#d4edda':'#f8d7da'}">
+        <span class="tp-cost-label"><strong>${isProfitable?'Profit':'Loss'}</strong></span>
+        <span class="tp-cost-val" style="color:${isProfitable?'#28a745':'#dc3545'}"><strong>₹${Math.abs(profit).toFixed(2)}</strong></span>
+      </div>
+    </div>
+    <div class="tp-calc-detail">
+      <h4>📐 Calculation Details</h4>
+      <div class="tp-calc-step">Cheese Operators = 1 × (₹${cheeseBase} + ₹${cheeseExtra}) = ₹${cheeseCost.toFixed(2)}</div>
+      <div class="tp-calc-step">TFO Operators = ₹${tfoBase}${totalMachines>3?' + ('+(totalMachines-3)+' × ₹'+tfoExtra+')':''} = ₹${tfoCost.toFixed(2)}</div>
+      <div class="tp-calc-step">Electricity = ${totalMachines} × ₹${power} = ₹${elecCost.toFixed(2)}</div>
+      <div class="tp-calc-step">Profit/Loss = ₹${totalRev.toFixed(2)} − ₹${totalCost.toFixed(2)} = <span class="tp-highlight">₹${profit.toFixed(2)}</span></div>
+    </div>
+  </div>`;
+
+  // Per-lot results
+  results.forEach(({lot, res})=>{
+    html += `<div class="tp-result-card">
+      <h3>📦 Lot ${lot.lotNumber} — Production Details</h3>
+      <div class="tp-alert ${res.isViable?'tp-alert-success':'tp-alert-danger'}" style="margin-bottom:14px;">
+        ${res.isViable?'✅ <strong>VIABLE</strong>':'⚠️ <strong>NOT VIABLE</strong>'}
+      </div>
+      <div class="tp-mini-grid">
+        <div class="tp-mini-card" style="background:#e8f5e9"><div class="tp-mini-label">Total Supply (Cheese)</div><div class="tp-mini-val" style="color:#28a745">${res.totalSupply.toFixed(2)} kg</div></div>
+        <div class="tp-mini-card" style="background:#fff3cd"><div class="tp-mini-label">Actual Production (TFO)</div><div class="tp-mini-val" style="color:#856404">${res.actualProd.toFixed(2)} kg</div></div>
+        <div class="tp-mini-card" style="background:#d1ecf1"><div class="tp-mini-label">Efficiency Ratio</div><div class="tp-mini-val" style="color:#0c5460">${res.effRatio.toFixed(2)}%</div></div>
+        <div class="tp-mini-card" style="background:#d4edda"><div class="tp-mini-label">Billing Revenue</div><div class="tp-mini-val" style="color:#155724">₹${res.revenue.toFixed(2)}</div></div>
+      </div>
+      <h4>🧀 Cheese Winding Summary</h4>
+      <table><tr><td>Number of Drums</td><td>${lot.numDrums}</td></tr>
+        <tr><td>Cycles per Drum</td><td>${res.cyclesPerDrum.toFixed(2)}</td></tr>
+        <tr><td>Total Tubes per Drum</td><td>${res.totalTubesPerDrum.toFixed(2)}</td></tr>
+        <tr style="background:#e8f5e9"><td><strong>Total Supply</strong></td><td><strong>${res.totalSupply.toFixed(2)} kg</strong></td></tr>
+      </table>
+      <h4>🔄 TFO Production Summary</h4>
+      <table><tr><td>Number of TFO Machines</td><td>${lot.numTFO}</td></tr>
+        <tr><td>Total Ports</td><td>${res.totalPorts}</td></tr>
+        <tr><td>Production per Port (12h)</td><td>${res.prodPerPort12h.toFixed(4)} kg</td></tr>
+        <tr><td>Ideal Production</td><td>${res.idealProduction.toFixed(2)} kg</td></tr>
+        <tr><td>Tubes per Port</td><td>${res.tubesPerPort.toFixed(4)}</td></tr>
+        <tr><td>Stops (Tube Changes)</td><td>${res.stops.toFixed(4)}</td></tr>
+        <tr><td>Total Loss</td><td>${res.totalLoss.toFixed(2)} min</td></tr>
+        <tr><td>Effective Time</td><td>${res.effTimeTFO.toFixed(2)} min</td></tr>
+        <tr style="background:#fff3cd"><td><strong>Actual Production</strong></td><td><strong>${res.actualProd.toFixed(2)} kg</strong></td></tr>
+      </table>
+      <h4>💵 Billing</h4>
+      <div class="tp-cost-box">
+        <div class="tp-cost-row"><span class="tp-cost-label">Billing Rate</span><span class="tp-cost-val">₹${lot.billingRate.toFixed(2)}/kg</span></div>
+        <div class="tp-cost-row"><span class="tp-cost-label">Production Qty</span><span class="tp-cost-val">${res.actualProd.toFixed(2)} kg</span></div>
+        <div class="tp-cost-row tp-total-row"><span class="tp-cost-label"><strong>Revenue from Lot ${lot.lotNumber}</strong></span><span class="tp-cost-val"><strong>₹${res.revenue.toFixed(2)}</strong></span></div>
+      </div>
+      ${!res.isViable?`<div class="tp-alert tp-alert-warning" style="margin-top:14px;">
+        <strong>⚠️ Recommendations:</strong><br>
+        • Deficit: ${(res.actualProd-res.totalSupply).toFixed(2)} kg per shift<br>
+        • Add ~${Math.ceil(((res.actualProd-res.totalSupply)/res.totalSupply)*lot.numDrums)} more drums<br>
+        • Or reduce TFO machines to ${Math.floor((res.totalSupply/res.actualProd)*lot.numTFO)}
+      </div>`:''}
+    </div>`;
+  });
+
+  const resDiv = g('tp_results');
+  resDiv.innerHTML = html;
+  resDiv.style.display = '';
+  resDiv.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// Auto-add first lot when TFO tab opens
+function initTFOPlanner() {
+  if(g('tp_lots_container') && g('tp_lots_container').children.length===0) tpAddLot();
+}
 
 // Remove duplicate rows from Sheet — keeps first occurrence of each ID, deletes the rest
 async function cleanDuplicatesFromSheet() {
@@ -3701,15 +4261,16 @@ let lotRowCount = 0;
 
 function go(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sb').forEach(b=>b.classList.remove('active'));
   g('p-'+tab).classList.add('active');
-  const idx={recv:0,disp:1,lots:2,dash:3,prod:4,pack:5}[tab];
-  document.querySelectorAll('.tb')[idx].classList.add('active');
+  const btn = document.querySelector(`.sb[data-tab="${tab}"]`);
+  if(btn) btn.classList.add('active');
   if(tab==='lots') buildLots();
   if(tab==='dash') buildDash();
   if(tab==='prod' && g('prodTbody').children.length===0) addProdRow();
   if(tab==='pack') buildPackedYarn();
-  // Auto-add first lot row when opening dispatch tab if empty
+  if(tab==='pkgmat') renderPkgMat();
+  if(tab==='tfovis') { initTFOPlanner(); }
   if(tab==='disp' && g('lotRowsTbody').children.length===0) addLotRow();
 }
 function clearForm(type){
