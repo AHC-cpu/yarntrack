@@ -510,6 +510,22 @@ th.num{text-align:right;}
       <button class="btn btn-ghost btn-sm" onclick="downloadExcel('lots')" style="color:var(--green);border-color:var(--green-dim);">⬇ Excel</button>
     </div>
   </div>
+  <!-- DATE RANGE BAR -->
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);margin-bottom:12px;">
+    <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;white-space:nowrap;">Recv Date Range</span>
+    <button class="chip" id="lChipToday"   onclick="setLotsChip('today',this)">Today</button>
+    <button class="chip" id="lChipWeek"    onclick="setLotsChip('week',this)">This Week</button>
+    <button class="chip" id="lChipMonth"   onclick="setLotsChip('month',this)">This Month</button>
+    <button class="chip" id="lChipQuarter" onclick="setLotsChip('quarter',this)">This Quarter</button>
+    <button class="chip on" id="lChipAll"  onclick="setLotsChip('all',this)">All Time</button>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:4px;">
+      <span style="font-size:11px;color:var(--text3);">From</span>
+      <input type="date" id="lDateFrom" onchange="onLotsDateChange()" style="width:140px;font-size:11px;padding:5px 8px;">
+      <span style="font-size:11px;color:var(--text3);">To</span>
+      <input type="date" id="lDateTo"   onchange="onLotsDateChange()" style="width:140px;font-size:11px;padding:5px 8px;">
+      <button class="btn btn-ghost btn-sm" onclick="clearLotsDate()" style="font-size:10px;">✕ Clear</button>
+    </div>
+  </div>
   <div class="fbar">
     <input type="text" placeholder="Search lot / company…" id="srchL" oninput="buildLots()" style="width:190px;">
     <div style="position:relative;display:inline-block;">
@@ -2275,6 +2291,60 @@ async function syncSheets() {
 function syncNow() { syncSheets(); }
 
 // ═══════════════════════════════════════════════
+// LOT STATUS DATE RANGE CHIPS
+// ═══════════════════════════════════════════════
+function setLotsChip(mode, btn) {
+  // Deactivate all chips
+  ['lChipToday','lChipWeek','lChipMonth','lChipQuarter','lChipAll'].forEach(id=>{
+    const el=g(id); if(el) el.classList.remove('on');
+  });
+  if(btn) btn.classList.add('on');
+
+  const now = new Date();
+  const td  = today();
+  let from  = '', to = '';
+
+  if(mode==='today') {
+    from = td; to = td;
+  } else if(mode==='week') {
+    const dow = now.getDay()||7;
+    const mon = new Date(now); mon.setDate(now.getDate()-(dow-1)); mon.setHours(0,0,0,0);
+    from = mon.toISOString().split('T')[0]; to = td;
+  } else if(mode==='month') {
+    from = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`; to = td;
+  } else if(mode==='quarter') {
+    const qStart = Math.floor(now.getMonth()/3)*3;
+    const qDate  = new Date(now.getFullYear(), qStart, 1);
+    from = qDate.toISOString().split('T')[0]; to = td;
+  } else {
+    // All time — clear dates
+    from = ''; to = '';
+  }
+
+  g('lDateFrom').value = from;
+  g('lDateTo').value   = to;
+  buildLots();
+}
+
+function onLotsDateChange() {
+  // Deactivate all chips when user manually enters dates
+  ['lChipToday','lChipWeek','lChipMonth','lChipQuarter','lChipAll'].forEach(id=>{
+    const el=g(id); if(el) el.classList.remove('on');
+  });
+  buildLots();
+}
+
+function clearLotsDate() {
+  g('lDateFrom').value=''; g('lDateTo').value='';
+  // Reactivate All Time chip
+  ['lChipToday','lChipWeek','lChipMonth','lChipQuarter','lChipAll'].forEach(id=>{
+    const el=g(id); if(el) el.classList.remove('on');
+  });
+  const el=g('lChipAll'); if(el) el.classList.add('on');
+  buildLots();
+}
+
+// ═══════════════════════════════════════════════
 // JOB RATES
 // ═══════════════════════════════════════════════
 let jobRates = JSON.parse(localStorage.getItem('yt2_jobrates') || '[]');
@@ -3813,6 +3883,60 @@ function colVisible(key) {
   return lotColVis[key] !== false;
 }
 
+// Returns processed lot rows (no filtering, no rendering) — used by Excel/Print
+function buildLotData() {
+  const lots = {};
+  recv.filter(r=>!r.isPacking).forEach(r=>{
+    if(!r.lotNo) return;
+    if(!lots[r.lotNo]) lots[r.lotNo]={
+      lotNo:r.lotNo, altLot:r.altLot||'', company:r.company, shade:r.shade,
+      count:r.count, tpi:r.tpi, blend:r.blend, date:r.date, firstDate:r.date,
+      doubleConeTip:r.doubleConeTip||'',
+      recvKg:0, recvBags:0, returnKg:0, returnBags:0,
+      dispKg:0, dispBags:0, status:r.status, allowedShortage:r.allowedShortage||0
+    };
+    lots[r.lotNo].recvKg   += r.weight;
+    lots[r.lotNo].recvBags += r.bags;
+    if((r.allowedShortage||0) > lots[r.lotNo].allowedShortage) lots[r.lotNo].allowedShortage = r.allowedShortage||0;
+    if(r.date > lots[r.lotNo].date) lots[r.lotNo].date = r.date;
+    if(r.date < lots[r.lotNo].firstDate) lots[r.lotNo].firstDate = r.date;
+    if(!lots[r.lotNo].doubleConeTip && r.doubleConeTip) lots[r.lotNo].doubleConeTip = r.doubleConeTip;
+  });
+  disp.filter(d=>!d.isPacking).forEach(d=>{
+    if(!d.lotNo) return;
+    if(!lots[d.lotNo]) lots[d.lotNo]={
+      lotNo:d.lotNo, altLot:'', company:d.company, shade:d.shade,
+      count:d.count, tpi:d.tpi, blend:d.blend, date:d.date, firstDate:d.date,
+      doubleConeTip:'', recvKg:0, recvBags:0, returnKg:0, returnBags:0,
+      dispKg:0, dispBags:0, status:'Received', allowedShortage:0
+    };
+    if(d.form==='R'){ lots[d.lotNo].returnKg+=d.weight; lots[d.lotNo].returnBags+=d.bags; }
+    else { lots[d.lotNo].dispKg+=d.weight; lots[d.lotNo].dispBags+=d.bags; }
+    if(completedLots.has(d.lotNo)) lots[d.lotNo].manuallyCompleted=true;
+  });
+  return Object.values(lots).map(l=>{
+    const netRecvKg  = Math.max(0, l.recvKg - l.returnKg);
+    const netRecvBags= Math.max(0, l.recvBags - l.returnBags);
+    const balKg      = Math.max(0, netRecvKg - l.dispKg);
+    const balBags    = Math.max(0, netRecvBags - l.dispBags);
+    const pct        = l.recvKg>0 ? Math.min(100,(l.dispKg/l.recvKg)*100) : 0;
+    const shortagePct= l.recvKg>0 ? ((l.recvKg-l.dispKg-l.returnKg)/l.recvKg)*100 : 0;
+    const allowed    = l.allowedShortage||0;
+    const firstMs    = l.firstDate ? new Date(l.firstDate).getTime() : null;
+    const ageing     = firstMs ? Math.floor((Date.now()-firstMs)/86400000) : null;
+    const ageColor   = ageing===null?'var(--text3)':ageing>90?'var(--red)':ageing>30?'var(--amber)':'var(--green)';
+    let cs;
+    if(completedLots.has(l.lotNo)) cs='Completed';
+    else if(l.status==='Hold') cs='Hold';
+    else if(balKg<=0.5 && l.returnKg>0 && l.dispKg===0) cs='Returned';
+    else if(l.dispKg===0 && l.returnKg===0) cs='Received';
+    else if(allowed>0 && shortagePct<=allowed) cs='Completed';
+    else if(balKg<=0.5) cs='Fully Dispatched';
+    else cs='Partial Dispatch';
+    return{...l, netRecvKg, netRecvBags, balKg, balBags, pct, shortagePct, allowed, cs, ageing, ageColor};
+  });
+}
+
 function buildLots() {
   const s=g('srchL').value.toLowerCase();
   const selCo  = msGet('lCo');
@@ -3906,6 +4030,11 @@ function buildLots() {
   if(selCnt.length) rows=rows.filter(r=>selCnt.includes(r.count));
   if(selTpi.length) rows=rows.filter(r=>selTpi.includes(r.tpi));
   if(selShd.length) rows=rows.filter(r=>selShd.includes(r.shade));
+  // Date range filter — filter by first receipt date
+  const lFrom = g('lDateFrom')?.value;
+  const lTo   = g('lDateTo')?.value;
+  if(lFrom) rows = rows.filter(r=>(r.firstDate||r.date) >= lFrom);
+  if(lTo)   rows = rows.filter(r=>(r.firstDate||r.date) <= lTo);
   // Hide completed lots unless checkbox is checked
   const showCompleted = g('showCompletedLots')?.checked;
   if(!showCompleted) rows=rows.filter(r=>r.cs!=='Completed');
@@ -5391,9 +5520,10 @@ function downloadExcel(tab) {
       'JW Rate (Rs/kg)','Allowed Shortage %','Vehicle No','Status','Remarks'];
     let data = [...recv];
     data = byDate(data, 'recv');
-    const co = g('fRCo').value, st = g('fRSt').value;
+    const selCos = msGet('rCo');
+    const st = g('fRSt').value;
     const srch = g('srchR').value.toLowerCase();
-    if(co) data = data.filter(r=>r.company===co);
+    if(selCos.length) data = data.filter(r=>selCos.includes(r.company));
     if(st) data = data.filter(r=>r.status===st);
     if(srch) data = data.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
     data.sort((a,b)=>b.date.localeCompare(a.date));
@@ -5409,12 +5539,13 @@ function downloadExcel(tab) {
       'Bags','Weight (kg)','JW Rate (Rs/kg)','Form','Plant','Vehicle No','Remark'];
     let data = [...disp];
     data = byDate(data, 'disp');
-    const co = g('fDCo').value, fm = g('fDForm').value;
+    const selCos = msGet('dCo');
+    const fm = g('fDForm').value;
     const srch = g('srchD').value.toLowerCase();
-    if(co) data = data.filter(r=>r.company===co);
+    if(selCos.length) data = data.filter(r=>selCos.includes(r.company));
     if(fm) data = data.filter(r=>r.form===fm);
     if(srch) data = data.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
-    data.sort((a,b)=>b.date.localeCompare(a.date));
+    data.sort((a,b)=>(parseInt(b.challan)||0)-(parseInt(a.challan)||0));
     rows = data.map((r,i) => [
       i+1, r.date, r.challan, r.company, r.lotNo, r.shade||'', r.count||'',
       r.tpi||'', r.blend||'', r.bags, r.weight, r.rate||'', r.form||'D',
@@ -5423,39 +5554,36 @@ function downloadExcel(tab) {
 
   } else if (tab === 'lots') {
     filename = `LotStatus_${today()}.csv`;
-    headers = ['Lot No','Double Lot No','Company','Shade','Count','TPI','Blend','Double Cone Tip',
+    headers = ['Lot No','Double Lot','Company','Shade','Count','TPI','Blend','Double Cone Tip',
       'Recv Date','Ageing (days)','Recv (kg)','Return (kg)','Net Recv (kg)','Disp (kg)','Balance (kg)',
       'Recv Bags','Disp Bags','Bal Bags','Shortage %','Allowed %','Pending Qty (kg)','Status'];
-    // Get rendered lot rows from the DOM (already filtered)
-    const tbRows = g('tbL').querySelectorAll('tr');
-    rows = [...tbRows].map(tr => {
-      const tds = [...tr.querySelectorAll('td')];
-      if (!tds.length) return null;
+    // Build from data directly (not DOM — avoids column visibility issues)
+    const lotData = buildLotData();
+    const showCompleted = g('showCompletedLots')?.checked;
+    const selCo  = msGet('lCo'), selSt=msGet('lSt'), selCnt=msGet('lCnt');
+    const selTpi = msGet('lTpi'), selShd=msGet('lShd');
+    const srch   = g('srchL').value.toLowerCase();
+    let lotRows  = lotData;
+    if(!showCompleted) lotRows = lotRows.filter(l=>l.cs!=='Completed');
+    if(srch)       lotRows = lotRows.filter(l=>(l.lotNo+l.company+(l.altLot||'')).toLowerCase().includes(srch));
+    if(selCo.length)  lotRows = lotRows.filter(l=>selCo.includes(l.company));
+    if(selSt.length)  lotRows = lotRows.filter(l=>selSt.includes(l.cs));
+    if(selCnt.length) lotRows = lotRows.filter(l=>selCnt.includes(l.count));
+    if(selTpi.length) lotRows = lotRows.filter(l=>selTpi.includes(l.tpi));
+    if(selShd.length) lotRows = lotRows.filter(l=>selShd.includes(l.shade));
+    rows = lotRows.map(l => {
+      const allowedWasteKg = l.recvKg*(l.allowed/100);
+      const pendingQty     = Math.max(0, l.recvKg - allowedWasteKg - l.dispKg - l.returnKg);
       return [
-        tds[0]?.textContent||'',  // lot no
-        tds[1]?.textContent||'',  // double lot
-        tds[2]?.textContent||'',  // company
-        tds[3]?.textContent||'',  // shade
-        tds[4]?.textContent||'',  // count
-        tds[5]?.textContent||'',  // tpi
-        tds[6]?.textContent||'',  // blend
-        tds[7]?.textContent||'',  // double cone tip
-        tds[8]?.textContent||'',  // recv date
-        tds[9]?.textContent?.replace(' d','')||'',   // ageing
-        tds[10]?.textContent||'', // recv kg
-        tds[11]?.textContent||'', // return kg
-        tds[12]?.textContent||'', // net recv kg
-        tds[13]?.textContent||'', // disp kg
-        tds[14]?.textContent||'', // balance kg
-        tds[15]?.textContent||'', // recv bags
-        tds[16]?.textContent||'', // disp bags
-        tds[17]?.textContent||'', // bal bags
-        tds[18]?.textContent||'', // shortage%
-        tds[19]?.textContent||'', // allowed%
-        tds[20]?.textContent||'', // pending qty
-        tds[21]?.textContent||''  // status
+        l.lotNo, l.altLot||'', l.company, l.shade||'', l.count||'', l.tpi||'', l.blend||'', l.doubleConeTip||'',
+        l.date, l.ageing!==null?l.ageing+'d':'',
+        fmtKg(l.recvKg), l.returnKg>0?'-'+fmtKg(l.returnKg):'', fmtKg(l.netRecvKg),
+        fmtKg(l.dispKg), fmtKg(l.balKg),
+        l.recvBags, l.dispBags, l.balBags,
+        l.shortagePct.toFixed(2)+'%', l.allowed>0?l.allowed+'%':'',
+        l.allowed>0?fmtKg(pendingQty):'', l.cs
       ];
-    }).filter(Boolean);
+    });
 
   } else if (tab === 'pack') {
     filename = `PackedYarn_${today()}.csv`;
@@ -5520,11 +5648,12 @@ function printTab(tab) {
 
   if (tab === 'recv') {
     title = 'Order Receive Report';
-    const co = g('fRCo').value, st = g('fRSt').value;
-    sub = [co||'All Companies', st||'All Status', 'Filter: '+chipLabel('recv')].join(' · ');
+    const selCos = msGet('rCo');
+    const st = g('fRSt').value;
+    sub = [(selCos.length?selCos.join(', '):'All Companies'), st||'All Status'].join(' · ');
     let rows = [...recv];
     rows = byDate(rows,'recv');
-    if(co) rows = rows.filter(r=>r.company===co);
+    if(selCos.length) rows = rows.filter(r=>selCos.includes(r.company));
     if(st) rows = rows.filter(r=>r.status===st);
     const srch = g('srchR').value.toLowerCase();
     if(srch) rows = rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
@@ -5561,15 +5690,16 @@ function printTab(tab) {
 
   } else if (tab === 'disp') {
     title = 'Dispatch Report';
-    const co = g('fDCo').value, fm = g('fDForm').value;
-    sub = [co||'All Companies', fm||'All Forms', 'Filter: '+chipLabel('disp')].join(' · ');
+    const selCos = msGet('dCo');
+    const fm = g('fDForm').value;
+    sub = [(selCos.length?selCos.join(', '):'All Companies'), fm||'All Forms'].join(' · ');
     let rows = [...disp];
     rows = byDate(rows,'disp');
-    if(co) rows = rows.filter(r=>r.company===co);
+    if(selCos.length) rows = rows.filter(r=>selCos.includes(r.company));
     if(fm) rows = rows.filter(r=>r.form===fm);
     const srch = g('srchD').value.toLowerCase();
     if(srch) rows = rows.filter(r=>(r.lotNo+r.company+r.challan).toLowerCase().includes(srch));
-    rows.sort((a,b)=>b.date.localeCompare(a.date));
+    rows.sort((a,b)=>(parseInt(b.challan)||0)-(parseInt(a.challan)||0));
     const totalBags = rows.reduce((s,r)=>s+r.bags,0);
     const totalWt   = rows.reduce((s,r)=>s+r.weight,0);
     // Group by challan
@@ -5607,50 +5737,59 @@ function printTab(tab) {
 
   } else if (tab === 'lots') {
     title = 'Lot Status Report';
-    const co=g('fLCo').value, st=g('fLSt').value, cnt=g('fLCnt').value, shd=g('fLShd').value;
-    sub = [co||'All Companies', st||'All Status', cnt||'All Counts', shd||'All Shades'].filter(x=>x&&!x.startsWith('All')).join(' · ') || 'All Lots';
-    // Get the already-rendered lot rows from the table
-    const tbRows = g('tbL').querySelectorAll('tr');
-    const totalLots = tbRows.length;
-    let totRecv=0,totDisp=0,totBal=0;
-    tbRows.forEach(tr=>{
-      const tds=[...tr.querySelectorAll('td')];
-      if(tds.length>=13){totRecv+=parseFloat(tds[8].textContent)||0;totDisp+=parseFloat(tds[11].textContent)||0;totBal+=parseFloat(tds[12].textContent)||0;}
-    });
+    const selCo=msGet('lCo'), selSt=msGet('lSt'), selCnt=msGet('lCnt');
+    const selTpi=msGet('lTpi'), selShd=msGet('lShd');
+    const srch=g('srchL').value.toLowerCase();
+    const showCompleted=g('showCompletedLots')?.checked;
+    sub = [(selCo.length?selCo.join(', '):'All Companies')].join(' · ') || 'All Lots';
+    let lotRows = buildLotData();
+    if(!showCompleted) lotRows=lotRows.filter(l=>l.cs!=='Completed');
+    if(srch)       lotRows=lotRows.filter(l=>(l.lotNo+l.company).toLowerCase().includes(srch));
+    if(selCo.length)  lotRows=lotRows.filter(l=>selCo.includes(l.company));
+    if(selSt.length)  lotRows=lotRows.filter(l=>selSt.includes(l.cs));
+    if(selCnt.length) lotRows=lotRows.filter(l=>selCnt.includes(l.count));
+    if(selTpi.length) lotRows=lotRows.filter(l=>selTpi.includes(l.tpi));
+    if(selShd.length) lotRows=lotRows.filter(l=>selShd.includes(l.shade));
+    lotRows.sort((a,b)=>b.date.localeCompare(a.date));
+    const totRecv=lotRows.reduce((s,l)=>s+l.recvKg,0);
+    const totDisp=lotRows.reduce((s,l)=>s+l.dispKg,0);
+    const totBal =lotRows.reduce((s,l)=>s+l.balKg,0);
     html = `
       <div class="print-summary-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="print-kpi"><div class="print-kpi-label">Total Lots</div><div class="print-kpi-val">${totalLots}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Lots</div><div class="print-kpi-val">${lotRows.length}</div></div>
         <div class="print-kpi"><div class="print-kpi-label">Total Recv (kg)</div><div class="print-kpi-val">${fmtKg(totRecv)}</div></div>
         <div class="print-kpi"><div class="print-kpi-label">Total Disp (kg)</div><div class="print-kpi-val">${fmtKg(totDisp)}</div></div>
         <div class="print-kpi"><div class="print-kpi-label">Total Balance (kg)</div><div class="print-kpi-val">${fmtKg(totBal)}</div></div>
       </div>
       <table class="print-table">
         <thead><tr>
-          <th>Lot No.</th><th>Alt.Lot</th><th>Company</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
-          <th>Recv Date</th><th class="r">Recv(kg)</th><th class="r">Return(kg)</th>
-          <th class="r">NetRecv(kg)</th><th class="r">Disp(kg)</th><th class="r">Bal(kg)</th>
-          <th class="r">Bags</th><th class="r">Shortage%</th><th class="r">Allowed%</th>
+          <th>Lot No.</th><th>Double Lot</th><th>Company</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
+          <th>Recv Date</th><th class="r">Ageing</th><th class="r">Recv(kg)</th>
+          <th class="r">Return(kg)</th><th class="r">NetRecv(kg)</th><th class="r">Disp(kg)</th>
+          <th class="r">Bal(kg)</th><th class="r">Shortage%</th><th class="r">Allowed%</th>
           <th class="r">Pending(kg)</th><th>Status</th>
         </tr></thead>
         <tbody>
-          ${[...tbRows].map(tr=>{
-            const tds=[...tr.querySelectorAll('td')];
-            if(!tds.length) return '';
-            const st=tds[20]?.textContent?.trim()||'';
-            const stCls=st==='Completed'||st==='Fully Dispatched'?'tag-done':st==='Received'?'tag-recv':st==='Hold'||st==='Returned'?'tag-hold':'tag-disp';
+          ${lotRows.map(l=>{
+            const allowedWaste=l.recvKg*(l.allowed/100);
+            const pending=Math.max(0,l.recvKg-allowedWaste-l.dispKg-l.returnKg);
+            const stCls=l.cs==='Completed'||l.cs==='Fully Dispatched'?'tag-done':l.cs==='Received'?'tag-recv':l.cs==='Hold'||l.cs==='Returned'?'tag-hold':'tag-disp';
             return `<tr>
-              <td><strong>${tds[0]?.textContent||''}</strong></td>
-              <td>${tds[1]?.textContent||''}</td><td><strong>${tds[2]?.textContent||''}</strong></td>
-              <td>${tds[3]?.textContent||''}</td><td>${tds[4]?.textContent||''}</td>
-              <td>${tds[5]?.textContent||''}</td><td>${tds[6]?.textContent||''}</td>
-              <td>${tds[7]?.textContent||''}</td>
-              <td class="r">${tds[8]?.textContent||''}</td><td class="r">${tds[9]?.textContent||''}</td>
-              <td class="r">${tds[10]?.textContent||''}</td><td class="r">${tds[11]?.textContent||''}</td>
-              <td class="r"><strong>${tds[12]?.textContent||''}</strong></td>
-              <td class="r">${tds[13]?.textContent||''}</td>
-              <td class="r">${tds[16]?.textContent||''}</td><td class="r">${tds[17]?.textContent||''}</td>
-              <td class="r">${tds[18]?.textContent||''}</td>
-              <td><span class="${stCls}">${st}</span></td>
+              <td><strong>${l.lotNo}</strong></td>
+              <td>${l.altLot||'—'}</td><td><strong>${l.company}</strong></td>
+              <td>${l.shade||'—'}</td><td>${l.count||'—'}</td>
+              <td>${l.tpi||'—'}</td><td>${l.blend||'—'}</td>
+              <td>${l.date}</td>
+              <td class="r">${l.ageing!==null?l.ageing+'d':'—'}</td>
+              <td class="r">${fmtKg(l.recvKg)}</td>
+              <td class="r">${l.returnKg>0?'-'+fmtKg(l.returnKg):'—'}</td>
+              <td class="r">${fmtKg(l.netRecvKg)}</td>
+              <td class="r">${fmtKg(l.dispKg)}</td>
+              <td class="r"><strong>${fmtKg(l.balKg)}</strong></td>
+              <td class="r">${l.shortagePct.toFixed(2)}%</td>
+              <td class="r">${l.allowed>0?l.allowed+'%':'—'}</td>
+              <td class="r"><strong>${l.allowed>0?fmtKg(pending):'—'}</strong></td>
+              <td><span class="${stCls}">${l.cs}</span></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -5826,6 +5965,65 @@ function printTab(tab) {
             <td class="r">${fmtKg(totPacked)}</td>
             <td class="r">${fmtKg(totRemain)}</td>
           </tr>
+        </tbody>
+      </table>`;
+
+  } else if (tab === 'pkgmat') {
+    title = 'Packing Material Report';
+    sub = today();
+    const totPkgRecv = pkgRecv.reduce((s,r)=>s+(r.weight||0),0);
+    const totPkgDisp = pkgDisp.reduce((s,r)=>s+(r.weight||0),0);
+    const sortedR = [...pkgRecv].sort((a,b)=>b.date.localeCompare(a.date));
+    const sortedD = [...pkgDisp].sort((a,b)=>b.date.localeCompare(a.date));
+    html = `
+      <div class="print-summary-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="print-kpi"><div class="print-kpi-label">Total Received (kg)</div><div class="print-kpi-val">${fmtKg(totPkgRecv)}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Total Dispatched (kg)</div><div class="print-kpi-val">${fmtKg(totPkgDisp)}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Balance (kg)</div><div class="print-kpi-val">${fmtKg(Math.max(0,totPkgRecv-totPkgDisp))}</div></div>
+      </div>
+      <strong style="display:block;margin:12px 0 6px;font-size:13px;">📥 Packing Receipts (${sortedR.length})</strong>
+      <table class="print-table">
+        <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Item</th><th class="r">Bags</th><th class="r">Weight (kg)</th><th class="r">Price (₹)</th><th>Remarks</th></tr></thead>
+        <tbody>${sortedR.map((r,i)=>`<tr><td>${i+1}</td><td>${r.date}</td><td>${r.challan}</td><td>${r.company}</td><td><strong>${r.item||'—'}</strong></td><td class="r">${r.bags||0}</td><td class="r">${fmtKg(r.weight)}</td><td class="r">${r.price?'₹'+r.price:'—'}</td><td>${r.remarks||'—'}</td></tr>`).join('')}</tbody>
+      </table>
+      <strong style="display:block;margin:16px 0 6px;font-size:13px;">📤 Packing Dispatches (${sortedD.length})</strong>
+      <table class="print-table">
+        <thead><tr><th>#</th><th>Date</th><th>Challan</th><th>Company</th><th>Item</th><th class="r">Bags</th><th class="r">Weight (kg)</th><th>Lot No.</th><th>Remarks</th></tr></thead>
+        <tbody>${sortedD.map((r,i)=>`<tr><td>${i+1}</td><td>${r.date}</td><td>${r.challan}</td><td>${r.company}</td><td><strong>${r.item||'—'}</strong></td><td class="r">${r.bags||0}</td><td class="r">${fmtKg(r.weight)}</td><td>${r.lotNo||'—'}</td><td>${r.remarks||'—'}</td></tr>`).join('')}</tbody>
+      </table>`;
+
+  } else if (tab === 'rates') {
+    title = 'Job Rates Report';
+    sub = today();
+    const fCo=g('fRateCo').value, fCnt=g('fRateCnt').value, fBl=g('fRateBl')?.value||'';
+    const srch=g('srchRates').value.toLowerCase();
+    let data=[...jobRates];
+    if(fCo)  data=data.filter(r=>r.company===fCo);
+    if(fCnt) data=data.filter(r=>r.count===fCnt);
+    if(fBl)  data=data.filter(r=>r.blend===fBl);
+    if(srch) data=data.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')+(r.shade||'')).toLowerCase().includes(srch));
+    data.sort((a,b)=>a.company.localeCompare(b.company)||(parseFloat(a.count)||0)-(parseFloat(b.count)||0));
+    html = `
+      <div class="print-summary-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="print-kpi"><div class="print-kpi-label">Total Entries</div><div class="print-kpi-val">${data.length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Companies</div><div class="print-kpi-val">${uniq(data.map(r=>r.company)).length}</div></div>
+        <div class="print-kpi"><div class="print-kpi-label">Avg Rate (₹/kg)</div><div class="print-kpi-val">${data.length?'₹'+(data.reduce((s,r)=>s+(r.rate||0),0)/data.length).toFixed(2):'—'}</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>Company</th><th>Count</th><th>TPI</th><th>Blend</th><th>Shade</th>
+          <th class="r">Shortage %</th><th class="r">Rate (₹/kg)</th>
+          <th>Contract Date</th><th>Remarks</th>
+        </tr></thead>
+        <tbody>
+          ${data.map((r,i)=>`<tr>
+            <td>${i+1}</td><td><strong>${r.company}</strong></td>
+            <td>${r.count||'—'}</td><td>${r.tpi||'—'}</td>
+            <td>${r.blend||'—'}</td><td>${r.shade||'—'}</td>
+            <td class="r">${r.shortage!=null?r.shortage+'%':'—'}</td>
+            <td class="r"><strong>₹${parseFloat(r.rate||0).toFixed(2)}</strong></td>
+            <td>${r.contractDate||'—'}</td><td>${r.remarks||'—'}</td>
+          </tr>`).join('')}
         </tbody>
       </table>`;
   }
