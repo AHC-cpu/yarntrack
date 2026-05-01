@@ -1150,9 +1150,15 @@ th.num{text-align:right;}
         <input type="text" id="jr_tpi" placeholder="e.g. 17" list="dl_tpi">
       </div>
       <div class="fg">
+        <label>Blend</label>
+        <select id="jr_blend"><option value="">— Select Blend —</option></select>
+      </div>
+      <div class="fg">
         <label>Allowed Shortage %</label>
         <input type="number" id="jr_shortage" placeholder="e.g. 0.5" step="0.01" min="0" max="100">
       </div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px;max-width:400px;">
       <div class="fg">
         <label>Job Rate (₹/kg) *</label>
         <input type="number" id="jr_rate" placeholder="e.g. 15.00" step="0.01" min="0">
@@ -1171,9 +1177,10 @@ th.num{text-align:right;}
 
   <!-- FILTER + SEARCH BAR -->
   <div class="fbar" style="margin-bottom:14px;">
-    <input type="text" id="srchRates" placeholder="Search company / count…" oninput="renderRates()" style="width:220px;">
-    <select id="fRateCo" onchange="renderRates()" style="width:160px;"><option value="">All Companies</option></select>
+    <input type="text" id="srchRates" placeholder="Search company / count / blend…" oninput="renderRates()" style="width:240px;">
+    <select id="fRateCo"  onchange="renderRates()" style="width:160px;"><option value="">All Companies</option></select>
     <select id="fRateCnt" onchange="renderRates()" style="width:140px;"><option value="">All Counts</option></select>
+    <select id="fRateBl"  onchange="renderRates()" style="width:140px;"><option value="">All Blends</option></select>
   </div>
 
   <!-- KPI CARDS -->
@@ -1194,6 +1201,7 @@ th.num{text-align:right;}
             <th>Company</th>
             <th>Count</th>
             <th>TPI</th>
+            <th>Blend</th>
             <th class="num">Shortage %</th>
             <th class="num" style="color:var(--green);">Rate (₹/kg)</th>
             <th>Remarks</th>
@@ -2267,27 +2275,34 @@ function saveJobRatesLocal() {
 
 function renderRates() {
   // Populate form selects
-  fillSel('jr_co',  master.companies, '— Select Company —');
-  fillSel('jr_cnt', master.counts,    '— Select Count —');
+  fillSel('jr_co',    master.companies, '— Select Company —');
+  fillSel('jr_cnt',   master.counts,    '— Select Count —');
+  fillSel('jr_blend', master.blends,    '— Select Blend —');
 
   // Populate filter selects
-  const cos  = uniq(jobRates.map(r=>r.company));
-  const cnts = uniq(jobRates.map(r=>r.count));
-  const fCoCur = g('fRateCo').value, fCntCur = g('fRateCnt').value;
-  g('fRateCo').innerHTML  = '<option value="">All Companies</option>' + cos.map(c=>`<option value="${c}"${c===fCoCur?' selected':''}>${c}</option>`).join('');
-  g('fRateCnt').innerHTML = '<option value="">All Counts</option>'    + cnts.map(c=>`<option value="${c}"${c===fCntCur?' selected':''}>${c}</option>`).join('');
+  const cos    = uniq(jobRates.map(r=>r.company));
+  const cnts   = uniq(jobRates.map(r=>r.count));
+  const blends = uniq(jobRates.map(r=>r.blend).filter(Boolean));
+  const fCoCur  = g('fRateCo').value;
+  const fCntCur = g('fRateCnt').value;
+  const fBlCur  = g('fRateBl')?.value||'';
+  g('fRateCo').innerHTML  = '<option value="">All Companies</option>'  + cos.map(c=>`<option value="${c}"${c===fCoCur?' selected':''}>${c}</option>`).join('');
+  g('fRateCnt').innerHTML = '<option value="">All Counts</option>'     + cnts.map(c=>`<option value="${c}"${c===fCntCur?' selected':''}>${c}</option>`).join('');
+  if(g('fRateBl')) g('fRateBl').innerHTML = '<option value="">All Blends</option>' + blends.map(c=>`<option value="${c}"${c===fBlCur?' selected':''}>${c}</option>`).join('');
 
   // Apply filters
-  const srch = g('srchRates').value.toLowerCase();
-  const fCo  = g('fRateCo').value;
-  const fCnt = g('fRateCnt').value;
+  const srch  = g('srchRates').value.toLowerCase();
+  const fCo   = g('fRateCo').value;
+  const fCnt  = g('fRateCnt').value;
+  const fBl   = g('fRateBl')?.value||'';
   let rows = [...jobRates];
-  if(srch) rows = rows.filter(r=>(r.company+r.count+r.tpi).toLowerCase().includes(srch));
+  if(srch) rows = rows.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')).toLowerCase().includes(srch));
   if(fCo)  rows = rows.filter(r=>r.company===fCo);
   if(fCnt) rows = rows.filter(r=>r.count===fCnt);
+  if(fBl)  rows = rows.filter(r=>r.blend===fBl);
 
-  // Sort: company → count → TPI
-  rows.sort((a,b)=>a.company.localeCompare(b.company)||(parseFloat(a.count)||0)-(parseFloat(b.count)||0)||(parseFloat(a.tpi)||0)-(parseFloat(b.tpi)||0));
+  // Sort: company → count → TPI → blend
+  rows.sort((a,b)=>a.company.localeCompare(b.company)||(parseFloat(a.count)||0)-(parseFloat(b.count)||0)||(parseFloat(a.tpi)||0)-(parseFloat(b.tpi)||0)|(a.blend||'').localeCompare(b.blend||''));
 
   // KPIs (from full dataset)
   const allRates = jobRates.map(r=>r.rate).filter(Boolean);
@@ -2314,6 +2329,7 @@ function renderRates() {
       <td style="font-weight:700;color:var(--text)">${r.company}</td>
       <td><span class="badge b-blue">${r.count||'—'}</span></td>
       <td style="color:var(--text2)">${r.tpi||'—'}</td>
+      <td style="color:var(--text3)">${r.blend||'—'}</td>
       <td class="num">${r.shortage!=null&&r.shortage!==''?r.shortage+'%':'—'}</td>
       <td class="num" style="font-weight:800;font-size:14px;color:var(--green);">₹${parseFloat(r.rate||0).toFixed(2)}</td>
       <td style="color:var(--text3);font-size:11px;">${r.remarks||'—'}</td>
@@ -2332,6 +2348,7 @@ function saveJobRate() {
   const co       = g('jr_co').value;
   const cnt      = g('jr_cnt').value;
   const tpi      = g('jr_tpi').value.trim();
+  const blend    = g('jr_blend').value;
   const shortage = g('jr_shortage').value;
   const rate     = parseFloat(g('jr_rate').value);
   const remarks  = g('jr_remarks').value.trim();
@@ -2342,25 +2359,25 @@ function saveJobRate() {
   }
 
   if(editId) {
-    // Update existing
     const idx = jobRates.findIndex(r=>r.id===editId);
     if(idx>=0) {
-      jobRates[idx] = { ...jobRates[idx], company:co, count:cnt, tpi, shortage:shortage!==''?parseFloat(shortage):null, rate, remarks, updatedAt:new Date().toISOString() };
+      jobRates[idx] = { ...jobRates[idx], company:co, count:cnt, tpi, blend, shortage:shortage!==''?parseFloat(shortage):null, rate, remarks, updatedAt:new Date().toISOString() };
     }
     if(g('jr_edit_id')) g('jr_edit_id').value='';
     g('jr_status').textContent='';
+    toast('✓ Rate updated','ok');
   } else {
-    // Check duplicate (same company + count + tpi)
-    const dup = jobRates.find(r=>r.company===co && r.count===cnt && r.tpi===tpi);
+    // Check duplicate (same company + count + tpi + blend)
+    const dup = jobRates.find(r=>r.company===co && r.count===cnt && r.tpi===tpi && (r.blend||'')===(blend||''));
     if(dup) {
-      // Update the existing rate
       dup.shortage  = shortage!==''?parseFloat(shortage):null;
       dup.rate      = rate;
+      dup.blend     = blend;
       dup.remarks   = remarks;
       dup.updatedAt = new Date().toISOString();
-      toast('✓ Rate updated (existing entry for this Company + Count + TPI)','ok');
+      toast('✓ Rate updated (existing entry for this combination)','ok');
     } else {
-      jobRates.push({ id:'JR'+Date.now()+'_'+Math.random().toString(36).slice(2,6), company:co, count:cnt, tpi, shortage:shortage!==''?parseFloat(shortage):null, rate, remarks, updatedAt:new Date().toISOString() });
+      jobRates.push({ id:'JR'+Date.now()+'_'+Math.random().toString(36).slice(2,6), company:co, count:cnt, tpi, blend, shortage:shortage!==''?parseFloat(shortage):null, rate, remarks, updatedAt:new Date().toISOString() });
       toast('✓ Job rate saved','ok');
     }
   }
@@ -2374,10 +2391,12 @@ function saveJobRate() {
 
 function editJobRate(id) {
   const r = jobRates.find(x=>x.id===id); if(!r) return;
-  fillSel('jr_co',  master.companies, '— Select Company —');
-  fillSel('jr_cnt', master.counts,    '— Select Count —');
-  setSelVal('jr_co',  r.company);
-  setSelVal('jr_cnt', r.count);
+  fillSel('jr_co',    master.companies, '— Select Company —');
+  fillSel('jr_cnt',   master.counts,    '— Select Count —');
+  fillSel('jr_blend', master.blends,    '— Select Blend —');
+  setSelVal('jr_co',    r.company);
+  setSelVal('jr_cnt',   r.count);
+  setSelVal('jr_blend', r.blend||'');
   g('jr_tpi').value      = r.tpi||'';
   g('jr_shortage').value = r.shortage!=null?r.shortage:'';
   g('jr_rate').value     = r.rate||'';
@@ -2409,7 +2428,7 @@ function delJobRate(id) {
 }
 
 function clearJobRateForm() {
-  ['jr_co','jr_cnt'].forEach(id=>{ const el=g(id); if(el) el.value=''; });
+  ['jr_co','jr_cnt','jr_blend'].forEach(id=>{ const el=g(id); if(el) el.value=''; });
   ['jr_tpi','jr_shortage','jr_rate','jr_remarks'].forEach(id=>{ const el=g(id); if(el) el.value=''; });
   const hidEl=g('jr_edit_id'); if(hidEl) hidEl.value='';
   g('jr_status').textContent='';
@@ -4558,6 +4577,10 @@ function populateAll() {
   fillSel('d_co', master.companies, '— Select Company —');
   fillSel('d_count', master.counts, '— Select Count —');
   fillSel('d_blend', master.blends, '— Select Blend —');
+  // Job Rates form selects
+  fillSel('jr_co',    master.companies, '— Select Company —');
+  fillSel('jr_cnt',   master.counts,    '— Select Count —');
+  fillSel('jr_blend', master.blends,    '— Select Blend —');
 
   // Datalists
   fillDL('dl_lot', lots);
@@ -5445,14 +5468,15 @@ function downloadExcel(tab) {
 
   } else if (tab === 'rates') {
     filename = `JobRates_${today()}.csv`;
-    headers = ['#','Company','Count','TPI','Shortage %','Rate (Rs/kg)','Remarks','Last Updated'];
-    const fCo=g('fRateCo').value, fCnt=g('fRateCnt').value, srch=g('srchRates').value.toLowerCase();
+    headers = ['#','Company','Count','TPI','Blend','Shortage %','Rate (Rs/kg)','Remarks','Last Updated'];
+    const fCo=g('fRateCo').value, fCnt=g('fRateCnt').value, fBl=g('fRateBl')?.value||'', srch=g('srchRates').value.toLowerCase();
     let data=[...jobRates];
-    if(fCo) data=data.filter(r=>r.company===fCo);
+    if(fCo)  data=data.filter(r=>r.company===fCo);
     if(fCnt) data=data.filter(r=>r.count===fCnt);
-    if(srch) data=data.filter(r=>(r.company+r.count+r.tpi).toLowerCase().includes(srch));
+    if(fBl)  data=data.filter(r=>r.blend===fBl);
+    if(srch) data=data.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')).toLowerCase().includes(srch));
     data.sort((a,b)=>a.company.localeCompare(b.company)||(parseFloat(a.count)||0)-(parseFloat(b.count)||0));
-    rows=data.map((r,i)=>[i+1,r.company,r.count||'',r.tpi||'',r.shortage!=null?r.shortage+'%':'',r.rate||'',r.remarks||'',r.updatedAt?r.updatedAt.slice(0,10):'']);
+    rows=data.map((r,i)=>[i+1,r.company,r.count||'',r.tpi||'',r.blend||'',r.shortage!=null?r.shortage+'%':'',r.rate||'',r.remarks||'',r.updatedAt?r.updatedAt.slice(0,10):'']);
   }
   const esc = v => {
     const s = String(v ?? '');
