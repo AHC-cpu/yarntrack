@@ -1154,14 +1154,22 @@ th.num{text-align:right;}
         <select id="jr_blend"><option value="">— Select Blend —</option></select>
       </div>
       <div class="fg">
+        <label>Shade / Colour</label>
+        <input type="text" id="jr_shade" placeholder="e.g. 3030069" list="dl_shade">
+      </div>
+    </div>
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="fg">
         <label>Allowed Shortage %</label>
         <input type="number" id="jr_shortage" placeholder="e.g. 0.5" step="0.01" min="0" max="100">
       </div>
-    </div>
-    <div class="grid g2" style="margin-bottom:14px;max-width:400px;">
       <div class="fg">
         <label>Job Rate (₹/kg) *</label>
         <input type="number" id="jr_rate" placeholder="e.g. 15.00" step="0.01" min="0">
+      </div>
+      <div class="fg">
+        <label>Date of Contract</label>
+        <input type="date" id="jr_date">
       </div>
     </div>
     <div class="fg" style="margin-bottom:14px;max-width:500px;">
@@ -1202,8 +1210,10 @@ th.num{text-align:right;}
             <th>Count</th>
             <th>TPI</th>
             <th>Blend</th>
+            <th>Shade</th>
             <th class="num">Shortage %</th>
             <th class="num" style="color:var(--green);">Rate (₹/kg)</th>
+            <th>Contract Date</th>
             <th>Remarks</th>
             <th>Last Updated</th>
             <th style="min-width:80px;">Actions</th>
@@ -2296,7 +2306,7 @@ function renderRates() {
   const fCnt  = g('fRateCnt').value;
   const fBl   = g('fRateBl')?.value||'';
   let rows = [...jobRates];
-  if(srch) rows = rows.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')).toLowerCase().includes(srch));
+  if(srch) rows = rows.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')+(r.shade||'')).toLowerCase().includes(srch));
   if(fCo)  rows = rows.filter(r=>r.company===fCo);
   if(fCnt) rows = rows.filter(r=>r.count===fCnt);
   if(fBl)  rows = rows.filter(r=>r.blend===fBl);
@@ -2330,8 +2340,10 @@ function renderRates() {
       <td><span class="badge b-blue">${r.count||'—'}</span></td>
       <td style="color:var(--text2)">${r.tpi||'—'}</td>
       <td style="color:var(--text3)">${r.blend||'—'}</td>
+      <td style="color:var(--text3)">${r.shade||'—'}</td>
       <td class="num">${r.shortage!=null&&r.shortage!==''?r.shortage+'%':'—'}</td>
       <td class="num" style="font-weight:800;font-size:14px;color:var(--green);">₹${parseFloat(r.rate||0).toFixed(2)}</td>
+      <td style="color:var(--text2);font-weight:500">${r.contractDate||'—'}</td>
       <td style="color:var(--text3);font-size:11px;">${r.remarks||'—'}</td>
       <td style="color:var(--text3);font-size:11px;">${r.updatedAt?r.updatedAt.slice(0,10):'—'}</td>
       <td>
@@ -2345,14 +2357,16 @@ function renderRates() {
 }
 
 function saveJobRate() {
-  const co       = g('jr_co').value;
-  const cnt      = g('jr_cnt').value;
-  const tpi      = g('jr_tpi').value.trim();
-  const blend    = g('jr_blend').value;
-  const shortage = g('jr_shortage').value;
-  const rate     = parseFloat(g('jr_rate').value);
-  const remarks  = g('jr_remarks').value.trim();
-  const editId   = g('jr_edit_id')?.value;
+  const co           = g('jr_co').value;
+  const cnt          = g('jr_cnt').value;
+  const tpi          = g('jr_tpi').value.trim();
+  const blend        = g('jr_blend').value;
+  const shade        = g('jr_shade').value.trim();
+  const shortage     = g('jr_shortage').value;
+  const rate         = parseFloat(g('jr_rate').value);
+  const contractDate = g('jr_date').value;
+  const remarks      = g('jr_remarks').value.trim();
+  const editId       = g('jr_edit_id')?.value;
 
   if(!co || !cnt || !tpi || isNaN(rate)) {
     toast('Fill Company, Count, TPI and Rate (*)','err'); return;
@@ -2361,23 +2375,24 @@ function saveJobRate() {
   if(editId) {
     const idx = jobRates.findIndex(r=>r.id===editId);
     if(idx>=0) {
-      jobRates[idx] = { ...jobRates[idx], company:co, count:cnt, tpi, blend, shortage:shortage!==''?parseFloat(shortage):null, rate, remarks, updatedAt:new Date().toISOString() };
+      jobRates[idx] = { ...jobRates[idx], company:co, count:cnt, tpi, blend, shade, shortage:shortage!==''?parseFloat(shortage):null, rate, contractDate, remarks, updatedAt:new Date().toISOString() };
     }
     if(g('jr_edit_id')) g('jr_edit_id').value='';
     g('jr_status').textContent='';
     toast('✓ Rate updated','ok');
   } else {
-    // Check duplicate (same company + count + tpi + blend)
-    const dup = jobRates.find(r=>r.company===co && r.count===cnt && r.tpi===tpi && (r.blend||'')===(blend||''));
+    const dup = jobRates.find(r=>r.company===co && r.count===cnt && r.tpi===tpi && (r.blend||'')===(blend||'') && (r.shade||'')===(shade||''));
     if(dup) {
-      dup.shortage  = shortage!==''?parseFloat(shortage):null;
-      dup.rate      = rate;
-      dup.blend     = blend;
-      dup.remarks   = remarks;
-      dup.updatedAt = new Date().toISOString();
+      dup.shortage     = shortage!==''?parseFloat(shortage):null;
+      dup.rate         = rate;
+      dup.blend        = blend;
+      dup.shade        = shade;
+      dup.contractDate = contractDate;
+      dup.remarks      = remarks;
+      dup.updatedAt    = new Date().toISOString();
       toast('✓ Rate updated (existing entry for this combination)','ok');
     } else {
-      jobRates.push({ id:'JR'+Date.now()+'_'+Math.random().toString(36).slice(2,6), company:co, count:cnt, tpi, blend, shortage:shortage!==''?parseFloat(shortage):null, rate, remarks, updatedAt:new Date().toISOString() });
+      jobRates.push({ id:'JR'+Date.now()+'_'+Math.random().toString(36).slice(2,6), company:co, count:cnt, tpi, blend, shade, shortage:shortage!==''?parseFloat(shortage):null, rate, contractDate, remarks, updatedAt:new Date().toISOString() });
       toast('✓ Job rate saved','ok');
     }
   }
@@ -2397,10 +2412,12 @@ function editJobRate(id) {
   setSelVal('jr_co',    r.company);
   setSelVal('jr_cnt',   r.count);
   setSelVal('jr_blend', r.blend||'');
-  g('jr_tpi').value      = r.tpi||'';
-  g('jr_shortage').value = r.shortage!=null?r.shortage:'';
-  g('jr_rate').value     = r.rate||'';
-  g('jr_remarks').value  = r.remarks||'';
+  g('jr_tpi').value          = r.tpi||'';
+  g('jr_shade').value        = r.shade||'';
+  g('jr_shortage').value     = r.shortage!=null?r.shortage:'';
+  g('jr_rate').value         = r.rate||'';
+  g('jr_date').value         = r.contractDate||'';
+  g('jr_remarks').value      = r.remarks||'';
   // Set hidden edit id
   let hidEl = g('jr_edit_id');
   if(!hidEl){ hidEl=document.createElement('input'); hidEl.type='hidden'; hidEl.id='jr_edit_id'; g('jr_co').closest('.card').appendChild(hidEl); }
@@ -2429,7 +2446,7 @@ function delJobRate(id) {
 
 function clearJobRateForm() {
   ['jr_co','jr_cnt','jr_blend'].forEach(id=>{ const el=g(id); if(el) el.value=''; });
-  ['jr_tpi','jr_shortage','jr_rate','jr_remarks'].forEach(id=>{ const el=g(id); if(el) el.value=''; });
+  ['jr_tpi','jr_shade','jr_shortage','jr_rate','jr_date','jr_remarks'].forEach(id=>{ const el=g(id); if(el) el.value=''; });
   const hidEl=g('jr_edit_id'); if(hidEl) hidEl.value='';
   g('jr_status').textContent='';
 }
@@ -5468,15 +5485,15 @@ function downloadExcel(tab) {
 
   } else if (tab === 'rates') {
     filename = `JobRates_${today()}.csv`;
-    headers = ['#','Company','Count','TPI','Blend','Shortage %','Rate (Rs/kg)','Remarks','Last Updated'];
+    headers = ['#','Company','Count','TPI','Blend','Shade','Shortage %','Rate (Rs/kg)','Contract Date','Remarks','Last Updated'];
     const fCo=g('fRateCo').value, fCnt=g('fRateCnt').value, fBl=g('fRateBl')?.value||'', srch=g('srchRates').value.toLowerCase();
     let data=[...jobRates];
     if(fCo)  data=data.filter(r=>r.company===fCo);
     if(fCnt) data=data.filter(r=>r.count===fCnt);
     if(fBl)  data=data.filter(r=>r.blend===fBl);
-    if(srch) data=data.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')).toLowerCase().includes(srch));
+    if(srch) data=data.filter(r=>(r.company+r.count+r.tpi+(r.blend||'')+(r.shade||'')).toLowerCase().includes(srch));
     data.sort((a,b)=>a.company.localeCompare(b.company)||(parseFloat(a.count)||0)-(parseFloat(b.count)||0));
-    rows=data.map((r,i)=>[i+1,r.company,r.count||'',r.tpi||'',r.blend||'',r.shortage!=null?r.shortage+'%':'',r.rate||'',r.remarks||'',r.updatedAt?r.updatedAt.slice(0,10):'']);
+    rows=data.map((r,i)=>[i+1,r.company,r.count||'',r.tpi||'',r.blend||'',r.shade||'',r.shortage!=null?r.shortage+'%':'',r.rate||'',r.contractDate||'',r.remarks||'',r.updatedAt?r.updatedAt.slice(0,10):'']);
   }
   const esc = v => {
     const s = String(v ?? '');
