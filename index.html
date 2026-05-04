@@ -519,11 +519,12 @@ th.num{text-align:right;}
     <button class="chip" id="lChipMonth"   onclick="setLotsChip('month',this)">This Month</button>
     <button class="chip" id="lChipQuarter" onclick="setLotsChip('quarter',this)">This Quarter</button>
     <button class="chip on" id="lChipAll"  onclick="setLotsChip('all',this)">All Time</button>
-    <div style="display:flex;align-items:center;gap:6px;margin-left:4px;">
+    <div style="display:flex;align-items:center;gap:6px;margin-left:4px;flex-wrap:wrap;">
       <span style="font-size:11px;color:var(--text3);">From</span>
-      <input type="date" id="lDateFrom" onchange="onLotsDateChange()" style="width:140px;font-size:11px;padding:5px 8px;">
+      <input type="date" id="lDateFrom" style="width:140px;font-size:11px;padding:5px 8px;" onkeydown="if(event.key==='Enter')applyLotsDate()">
       <span style="font-size:11px;color:var(--text3);">To</span>
-      <input type="date" id="lDateTo"   onchange="onLotsDateChange()" style="width:140px;font-size:11px;padding:5px 8px;">
+      <input type="date" id="lDateTo"   style="width:140px;font-size:11px;padding:5px 8px;" onkeydown="if(event.key==='Enter')applyLotsDate()">
+      <button class="btn btn-blue btn-sm" onclick="applyLotsDate()" style="font-size:11px;padding:5px 14px;">✓ Apply</button>
       <button class="btn btn-ghost btn-sm" onclick="clearLotsDate()" style="font-size:10px;">✕ Clear</button>
     </div>
   </div>
@@ -2590,17 +2591,23 @@ function setLotsChip(mode, btn) {
   buildLots();
 }
 
-function onLotsDateChange() {
-  // Deactivate all chips when user manually enters dates
+function applyLotsDate() {
+  // Deactivate all chips when user applies custom dates
   ['lChipToday','lChipWeek','lChipMonth','lChipQuarter','lChipAll'].forEach(id=>{
     const el=g(id); if(el) el.classList.remove('on');
   });
+  // Validate: if only "To" is set, treat it as "up to that date"
+  const from = g('lDateFrom').value;
+  const to   = g('lDateTo').value;
+  if(from && to && from > to) {
+    toast('From date must be before To date','err'); return;
+  }
   buildLots();
 }
 
 function clearLotsDate() {
-  g('lDateFrom').value=''; g('lDateTo').value='';
-  // Reactivate All Time chip
+  g('lDateFrom').value='';
+  g('lDateTo').value='';
   ['lChipToday','lChipWeek','lChipMonth','lChipQuarter','lChipAll'].forEach(id=>{
     const el=g(id); if(el) el.classList.remove('on');
   });
@@ -5857,15 +5864,14 @@ function downloadExcel(tab) {
 
   } else if (tab === 'lots') {
     filename = `LotStatus_${today()}.csv`;
-    headers = ['Lot No','Double Lot','Company','Shade','Count','TPI','Blend','Double Cone Tip',
-      'Recv Date','Ageing (days)','Recv (kg)','Return (kg)','Net Recv (kg)','Disp (kg)','Balance (kg)',
-      'Recv Bags','Disp Bags','Bal Bags','Shortage %','Allowed %','Pending Qty (kg)','Status'];
-    // Build from data directly (not DOM — avoids column visibility issues)
+    const cv = k => lotColVis[k] !== false;
+    // Build from data directly
     const lotData = buildLotData();
     const showCompleted = g('showCompletedLots')?.checked;
     const selCo  = msGet('lCo'), selSt=msGet('lSt'), selCnt=msGet('lCnt');
     const selTpi = msGet('lTpi'), selShd=msGet('lShd');
     const srch   = g('srchL').value.toLowerCase();
+    const lFrom  = g('lDateFrom')?.value, lTo = g('lDateTo')?.value;
     let lotRows  = lotData;
     if(!showCompleted) lotRows = lotRows.filter(l=>l.cs!=='Completed');
     if(srch)       lotRows = lotRows.filter(l=>(l.lotNo+l.company+(l.altLot||'')).toLowerCase().includes(srch));
@@ -5874,19 +5880,42 @@ function downloadExcel(tab) {
     if(selCnt.length) lotRows = lotRows.filter(l=>selCnt.includes(l.count));
     if(selTpi.length) lotRows = lotRows.filter(l=>selTpi.includes(l.tpi));
     if(selShd.length) lotRows = lotRows.filter(l=>selShd.includes(l.shade));
-    rows = lotRows.map(l => {
-      const allowedWasteKg = l.recvKg*(l.allowed/100);
-      const pendingQty     = Math.max(0, l.recvKg - allowedWasteKg - l.dispKg - l.returnKg);
-      return [
-        l.lotNo, l.altLot||'', l.company, l.shade||'', l.count||'', l.tpi||'', l.blend||'', l.doubleConeTip||'',
-        l.date, l.ageing!==null?l.ageing+'d':'',
-        fmtKg(l.recvKg), l.returnKg>0?'-'+fmtKg(l.returnKg):'', fmtKg(l.netRecvKg),
-        fmtKg(l.dispKg), fmtKg(l.balKg),
-        l.recvBags, l.dispBags, l.balBags,
-        l.shortagePct.toFixed(2)+'%', l.allowed>0?l.allowed+'%':'',
-        l.allowed>0?fmtKg(pendingQty):'', l.cs
-      ];
-    });
+    if(lFrom) lotRows = lotRows.filter(l=>(l.firstDate||l.date)>=lFrom);
+    if(lTo)   lotRows = lotRows.filter(l=>(l.firstDate||l.date)<=lTo);
+
+    // Build headers based on visible columns only
+    const colMap = [
+      {key:'lotNo',    hdr:'Lot No',          fn:l=>l.lotNo},
+      {key:'altLot',   hdr:'Double Lot',       fn:l=>l.altLot||''},
+      {key:'company',  hdr:'Company',          fn:l=>l.company},
+      {key:'shade',    hdr:'Shade',            fn:l=>l.shade||''},
+      {key:'count',    hdr:'Count',            fn:l=>l.count||''},
+      {key:'tpi',      hdr:'TPI',              fn:l=>l.tpi||''},
+      {key:'blend',    hdr:'Blend',            fn:l=>l.blend||''},
+      {key:'sct',      hdr:'Single Cone Tip',  fn:l=>l.singleConeTip||''},
+      {key:'dct',      hdr:'Double Cone Tip',  fn:l=>l.doubleConeTip||''},
+      {key:'recvDate', hdr:'Recv Date',        fn:l=>l.date},
+      {key:'ageing',   hdr:'Ageing (days)',    fn:l=>l.ageing!==null?l.ageing+'d':''},
+      {key:'recvKg',   hdr:'Recv (kg)',        fn:l=>fmtKg(l.recvKg)},
+      {key:'returnKg', hdr:'Return (kg)',      fn:l=>l.returnKg>0?'-'+fmtKg(l.returnKg):''},
+      {key:'netRecvKg',hdr:'Net Recv (kg)',    fn:l=>fmtKg(l.netRecvKg)},
+      {key:'dispKg',   hdr:'Disp (kg)',        fn:l=>fmtKg(l.dispKg)},
+      {key:'balKg',    hdr:'Balance (kg)',     fn:l=>fmtKg(l.balKg)},
+      {key:'recvBags', hdr:'Recv Bags',        fn:l=>l.recvBags},
+      {key:'dispBags', hdr:'Disp Bags',        fn:l=>l.dispBags},
+      {key:'balBags',  hdr:'Bal Bags',         fn:l=>l.balBags},
+      {key:'shortage', hdr:'Shortage %',       fn:l=>l.shortagePct.toFixed(2)+'%'},
+      {key:'allowed',  hdr:'Allowed %',        fn:l=>l.allowed>0?l.allowed+'%':''},
+      {key:'pending',  hdr:'Pending Qty (kg)', fn:l=>{
+        const aw=l.recvKg*(l.allowed/100);
+        return l.allowed>0?fmtKg(Math.max(0,l.recvKg-aw-l.dispKg-l.returnKg)):'';
+      }},
+      {key:'status',   hdr:'Status',           fn:l=>l.cs},
+      {key:'action',   hdr:'',                 fn:()=>''},  // skip action col
+    ].filter(c=>c.key!=='action' && cv(c.key));
+
+    headers = colMap.map(c=>c.hdr);
+    rows = lotRows.map(l => colMap.map(c=>c.fn(l)));
 
   } else if (tab === 'pack') {
     filename = `PackedYarn_${today()}.csv`;
@@ -6044,7 +6073,8 @@ function printTab(tab) {
     const selTpi=msGet('lTpi'), selShd=msGet('lShd');
     const srch=g('srchL').value.toLowerCase();
     const showCompleted=g('showCompletedLots')?.checked;
-    sub = [(selCo.length?selCo.join(', '):'All Companies')].join(' · ') || 'All Lots';
+    const lFrom=g('lDateFrom')?.value, lTo=g('lDateTo')?.value;
+    sub = [(selCo.length?selCo.join(', '):'All Companies'), lFrom&&lTo?`${lFrom} → ${lTo}`:lFrom?`From ${lFrom}`:lTo?`Up to ${lTo}`:''].filter(Boolean).join(' · ') || 'All Lots';
     let lotRows = buildLotData();
     if(!showCompleted) lotRows=lotRows.filter(l=>l.cs!=='Completed');
     if(srch)       lotRows=lotRows.filter(l=>(l.lotNo+l.company).toLowerCase().includes(srch));
@@ -6053,10 +6083,38 @@ function printTab(tab) {
     if(selCnt.length) lotRows=lotRows.filter(l=>selCnt.includes(l.count));
     if(selTpi.length) lotRows=lotRows.filter(l=>selTpi.includes(l.tpi));
     if(selShd.length) lotRows=lotRows.filter(l=>selShd.includes(l.shade));
+    if(lFrom) lotRows=lotRows.filter(l=>(l.firstDate||l.date)>=lFrom);
+    if(lTo)   lotRows=lotRows.filter(l=>(l.firstDate||l.date)<=lTo);
     lotRows.sort((a,b)=>b.date.localeCompare(a.date));
     const totRecv=lotRows.reduce((s,l)=>s+l.recvKg,0);
     const totDisp=lotRows.reduce((s,l)=>s+l.dispKg,0);
     const totBal =lotRows.reduce((s,l)=>s+l.balKg,0);
+
+    // Build column list based on lotColVis
+    const cv = k => lotColVis[k] !== false;
+    const thCols = [
+      cv('lotNo')    && '<th>Lot No.</th>',
+      cv('altLot')   && '<th>Double Lot</th>',
+      cv('company')  && '<th>Company</th>',
+      cv('shade')    && '<th>Shade</th>',
+      cv('count')    && '<th>Count</th>',
+      cv('tpi')      && '<th>TPI</th>',
+      cv('blend')    && '<th>Blend</th>',
+      cv('sct')      && '<th>Single Cone Tip</th>',
+      cv('dct')      && '<th>Double Cone Tip</th>',
+      cv('recvDate') && '<th>Recv Date</th>',
+      cv('ageing')   && '<th class="r">Ageing</th>',
+      cv('recvKg')   && '<th class="r">Recv(kg)</th>',
+      cv('returnKg') && '<th class="r">Return(kg)</th>',
+      cv('netRecvKg')&& '<th class="r">NetRecv(kg)</th>',
+      cv('dispKg')   && '<th class="r">Disp(kg)</th>',
+      cv('balKg')    && '<th class="r">Bal(kg)</th>',
+      cv('shortage') && '<th class="r">Shortage%</th>',
+      cv('allowed')  && '<th class="r">Allowed%</th>',
+      cv('pending')  && '<th class="r">Pending(kg)</th>',
+      cv('status')   && '<th>Status</th>',
+    ].filter(Boolean).join('');
+
     html = `
       <div class="print-summary-grid" style="grid-template-columns:repeat(4,1fr)">
         <div class="print-kpi"><div class="print-kpi-label">Total Lots</div><div class="print-kpi-val">${lotRows.length}</div></div>
@@ -6065,35 +6123,35 @@ function printTab(tab) {
         <div class="print-kpi"><div class="print-kpi-label">Total Balance (kg)</div><div class="print-kpi-val">${fmtKg(totBal)}</div></div>
       </div>
       <table class="print-table">
-        <thead><tr>
-          <th>Lot No.</th><th>Double Lot</th><th>Company</th><th>Shade</th><th>Count</th><th>TPI</th><th>Blend</th>
-          <th>Recv Date</th><th class="r">Ageing</th><th class="r">Recv(kg)</th>
-          <th class="r">Return(kg)</th><th class="r">NetRecv(kg)</th><th class="r">Disp(kg)</th>
-          <th class="r">Bal(kg)</th><th class="r">Shortage%</th><th class="r">Allowed%</th>
-          <th class="r">Pending(kg)</th><th>Status</th>
-        </tr></thead>
+        <thead><tr>${thCols}</tr></thead>
         <tbody>
           ${lotRows.map(l=>{
             const allowedWaste=l.recvKg*(l.allowed/100);
             const pending=Math.max(0,l.recvKg-allowedWaste-l.dispKg-l.returnKg);
             const stCls=l.cs==='Completed'||l.cs==='Fully Dispatched'?'tag-done':l.cs==='Received'?'tag-recv':l.cs==='Hold'||l.cs==='Returned'?'tag-hold':'tag-disp';
-            return `<tr>
-              <td><strong>${l.lotNo}</strong></td>
-              <td>${l.altLot||'—'}</td><td><strong>${l.company}</strong></td>
-              <td>${l.shade||'—'}</td><td>${l.count||'—'}</td>
-              <td>${l.tpi||'—'}</td><td>${l.blend||'—'}</td>
-              <td>${l.date}</td>
-              <td class="r">${l.ageing!==null?l.ageing+'d':'—'}</td>
-              <td class="r">${fmtKg(l.recvKg)}</td>
-              <td class="r">${l.returnKg>0?'-'+fmtKg(l.returnKg):'—'}</td>
-              <td class="r">${fmtKg(l.netRecvKg)}</td>
-              <td class="r">${fmtKg(l.dispKg)}</td>
-              <td class="r"><strong>${fmtKg(l.balKg)}</strong></td>
-              <td class="r">${l.shortagePct.toFixed(2)}%</td>
-              <td class="r">${l.allowed>0?l.allowed+'%':'—'}</td>
-              <td class="r"><strong>${l.allowed>0?fmtKg(pending):'—'}</strong></td>
-              <td><span class="${stCls}">${l.cs}</span></td>
-            </tr>`;
+            const cells = [
+              cv('lotNo')    && `<td><strong>${l.lotNo}</strong></td>`,
+              cv('altLot')   && `<td>${l.altLot||'—'}</td>`,
+              cv('company')  && `<td><strong>${l.company}</strong></td>`,
+              cv('shade')    && `<td>${l.shade||'—'}</td>`,
+              cv('count')    && `<td>${l.count||'—'}</td>`,
+              cv('tpi')      && `<td>${l.tpi||'—'}</td>`,
+              cv('blend')    && `<td>${l.blend||'—'}</td>`,
+              cv('sct')      && `<td>${l.singleConeTip||'—'}</td>`,
+              cv('dct')      && `<td>${l.doubleConeTip||'—'}</td>`,
+              cv('recvDate') && `<td>${l.date}</td>`,
+              cv('ageing')   && `<td class="r">${l.ageing!==null?l.ageing+'d':'—'}</td>`,
+              cv('recvKg')   && `<td class="r">${fmtKg(l.recvKg)}</td>`,
+              cv('returnKg') && `<td class="r">${l.returnKg>0?'-'+fmtKg(l.returnKg):'—'}</td>`,
+              cv('netRecvKg')&& `<td class="r">${fmtKg(l.netRecvKg)}</td>`,
+              cv('dispKg')   && `<td class="r">${fmtKg(l.dispKg)}</td>`,
+              cv('balKg')    && `<td class="r"><strong>${fmtKg(l.balKg)}</strong></td>`,
+              cv('shortage') && `<td class="r">${l.shortagePct.toFixed(2)}%</td>`,
+              cv('allowed')  && `<td class="r">${l.allowed>0?l.allowed+'%':'—'}</td>`,
+              cv('pending')  && `<td class="r"><strong>${l.allowed>0?fmtKg(pending):'—'}</strong></td>`,
+              cv('status')   && `<td><span class="${stCls}">${l.cs}</span></td>`,
+            ].filter(Boolean).join('');
+            return `<tr>${cells}</tr>`;
           }).join('')}
         </tbody>
       </table>`;
