@@ -229,6 +229,7 @@ th.num{text-align:right;}
     <div class="gs-pill"><div class="gs-dot" id="gsDot"></div><span id="gsLbl">Not connected</span></div>
     <button class="nav-btn" onclick="openModal('masterModal')">🗂 Master Data</button>
     <button class="nav-btn" onclick="openModal('cfgModal')">⚙ Settings</button>
+    <button class="nav-btn" onclick="renderBackupModal();openModal('backupModal')" title="Backup & Restore data" id="backupNavBtn">💾 Backup</button>
     <button class="nav-btn nav-btn-sync" onclick="syncNow()">↺ Sync</button>
     <button class="nav-btn nav-btn-danger" onclick="cleanDuplicatesFromSheet()" title="Remove duplicate entries">🧹 Clean Dupes</button>
   </div>
@@ -1568,6 +1569,75 @@ th.num{text-align:right;}
   </div>
 </div>
 
+<!-- BACKUP MODAL -->
+<div class="mbg" id="backupModal">
+  <div class="modal modal-wide" style="max-width:600px;">
+    <div class="mtitle">💾 Backup &amp; Restore</div>
+    <div class="msub">Download a full backup of all your data, or restore from a previous backup file.</div>
+
+    <!-- AUTO BACKUP STATUS -->
+    <div id="backupStatusCard" style="background:var(--surf2);border:1.5px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">🔄 Auto-Backup Every 7 Days</div>
+          <div style="font-size:11px;color:var(--text3);" id="lastBackupInfo">Last backup: Never</div>
+          <div style="font-size:11px;color:var(--text3);" id="nextBackupInfo">Next auto-backup: —</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;font-weight:600;color:var(--text2);">
+            <input type="checkbox" id="autoBackupEnabled" onchange="saveBackupPrefs()" style="width:auto;accent-color:var(--green);">
+            Auto-backup ON
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANUAL BACKUP -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">📥 Download Backup</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-blue" onclick="downloadBackup('full')">⬇ Full Backup (All Data)</button>
+        <button class="btn btn-ghost" onclick="downloadBackup('receipts')">⬇ Receipts Only</button>
+        <button class="btn btn-ghost" onclick="downloadBackup('dispatch')">⬇ Dispatch Only</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Backup is saved as a .json file — keep it safe on your computer or Google Drive.</div>
+    </div>
+
+    <!-- RESTORE -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">📤 Restore from Backup</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <label class="btn btn-ghost" style="cursor:pointer;font-size:12px;">
+          📂 Choose Backup File
+          <input type="file" id="restoreFile" accept=".json" onchange="loadRestoreFile(this)" style="display:none;">
+        </label>
+        <span id="restoreFileName" style="font-size:11px;color:var(--text3);">No file selected</span>
+      </div>
+      <div id="restorePreview" style="display:none;margin-top:12px;padding:12px 14px;background:var(--surf2);border:1.5px solid var(--border);border-radius:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">Backup Contents:</div>
+        <div id="restorePreviewContent" style="font-size:12px;color:var(--text2);line-height:1.7;"></div>
+        <div style="margin-top:12px;padding:10px;background:#fff3cd;border:1px solid #fcd34d;border-radius:6px;font-size:11px;color:#92400e;">
+          ⚠ Restoring will <strong>replace</strong> your current data. A backup of your current data will be downloaded first automatically.
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button class="btn btn-red" onclick="confirmRestore()">✓ Restore Now</button>
+          <button class="btn btn-ghost" onclick="cancelRestore()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP HISTORY -->
+    <div style="margin-bottom:4px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">📋 Recent Backups</div>
+      <div id="backupHistory" style="font-size:12px;color:var(--text3);">No backups recorded yet.</div>
+    </div>
+
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeModal('backupModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- DELETE CONFIRM MODAL -->
 <div class="mbg" id="delModal">
   <div class="modal" style="max-width:380px;">
@@ -1798,6 +1868,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initColVis(); initRecvColVis(); initDispColVis();
   populateAll(); renderAll();
   go('dash'); // start on dashboard
+  checkAutoBackup(); // check if auto-backup is due
 
   // Init Google Auth — retry until GIS script is loaded (async defer)
   function tryInitGoogleAuth() {
@@ -1977,6 +2048,7 @@ function initGoogleAuth() {
             loadMasterFromSheets().then(() => syncSheets());
             loadPackedFromSheets();
             loadJobRatesFromSheets();
+            loadCompletedFromSheets();
           });
         }
       });
@@ -2289,6 +2361,198 @@ async function syncSheets() {
   }
 }
 function syncNow() { syncSheets(); }
+
+// ═══════════════════════════════════════════════
+// BACKUP & RESTORE SYSTEM
+// ═══════════════════════════════════════════════
+const BACKUP_INTERVAL_DAYS = 7;
+let _restoreData = null;
+
+function getBackupPrefs() {
+  return JSON.parse(localStorage.getItem('yt2_backup_prefs') || '{"enabled":true,"lastBackup":null,"history":[]}');
+}
+function saveBackupPrefs() {
+  const prefs = getBackupPrefs();
+  prefs.enabled = g('autoBackupEnabled')?.checked ?? true;
+  localStorage.setItem('yt2_backup_prefs', JSON.stringify(prefs));
+}
+
+function checkAutoBackup() {
+  const prefs = getBackupPrefs();
+  if (!prefs.enabled) return;
+  const now = Date.now();
+  const last = prefs.lastBackup ? new Date(prefs.lastBackup).getTime() : 0;
+  const daysSince = (now - last) / (1000 * 60 * 60 * 24);
+  if (daysSince >= BACKUP_INTERVAL_DAYS) {
+    // Show a reminder toast and offer backup
+    setTimeout(() => {
+      toast(`💾 Auto-backup due (${Math.floor(daysSince)} days since last backup). Click Backup in the nav.`, '');
+      // Highlight the backup button
+      const btn = g('backupNavBtn');
+      if(btn) { btn.style.background='rgba(5,150,105,.3)'; btn.style.borderColor='rgba(5,150,105,.5)'; btn.style.color='#4ade80'; }
+    }, 3000);
+  }
+}
+
+function openBackupModal() {
+  renderBackupModal();
+  openModal('backupModal');
+}
+
+function renderBackupModal() {
+  const prefs = getBackupPrefs();
+  const cb = g('autoBackupEnabled');
+  if(cb) cb.checked = prefs.enabled !== false;
+
+  const lastDate = prefs.lastBackup ? new Date(prefs.lastBackup) : null;
+  const lastInfo = g('lastBackupInfo');
+  const nextInfo = g('nextBackupInfo');
+  if(lastInfo) lastInfo.textContent = lastDate
+    ? `Last backup: ${lastDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} at ${lastDate.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`
+    : 'Last backup: Never';
+  if(nextInfo) {
+    if(lastDate) {
+      const nextDate = new Date(lastDate.getTime() + BACKUP_INTERVAL_DAYS*24*60*60*1000);
+      const daysLeft = Math.max(0, Math.ceil((nextDate - Date.now()) / (1000*60*60*24)));
+      nextInfo.textContent = daysLeft === 0
+        ? '⚠ Auto-backup overdue — please backup now!'
+        : `Next auto-backup: ${nextDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} (in ${daysLeft} day${daysLeft!==1?'s':''})`;
+      nextInfo.style.color = daysLeft === 0 ? 'var(--red)' : 'var(--text3)';
+    } else {
+      nextInfo.textContent = 'No backup taken yet — backup now to start the schedule';
+      nextInfo.style.color = 'var(--amber)';
+    }
+  }
+
+  // Render history
+  const histEl = g('backupHistory');
+  if(histEl) {
+    if(!prefs.history || !prefs.history.length) {
+      histEl.textContent = 'No backups recorded yet.';
+    } else {
+      histEl.innerHTML = [...prefs.history].reverse().slice(0,10).map(h=>`
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;">
+          <span style="color:var(--text2);">${h.type==='auto'?'🔄 Auto':'💾 Manual'} — ${h.label}</span>
+          <span style="color:var(--text3);">${new Date(h.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</span>
+        </div>`).join('');
+    }
+  }
+}
+
+function downloadBackup(type) {
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0,10);
+  const timeStr = now.toTimeString().slice(0,5).replace(':','h');
+
+  let data, filename, label;
+  if(type === 'full') {
+    data = {
+      version: 2,
+      exportedAt: now.toISOString(),
+      exportedBy: cfg.name || 'YarnTrack',
+      type: 'full',
+      recv, disp, master, jobRates, pkgRecv, pkgDisp, packedData,
+      completedLots: [...completedLots]
+    };
+    filename = `YarnTrack_FullBackup_${dateStr}_${timeStr}.json`;
+    label = `Full Backup — ${recv.length} receipts, ${disp.length} dispatches`;
+  } else if(type === 'receipts') {
+    data = { version:2, exportedAt:now.toISOString(), type:'receipts', recv };
+    filename = `YarnTrack_Receipts_${dateStr}.json`;
+    label = `Receipts — ${recv.length} entries`;
+  } else {
+    data = { version:2, exportedAt:now.toISOString(), type:'dispatch', disp };
+    filename = `YarnTrack_Dispatch_${dateStr}.json`;
+    label = `Dispatch — ${disp.length} entries`;
+  }
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+
+  // Record in history and update last backup time
+  const prefs = getBackupPrefs();
+  prefs.lastBackup = now.toISOString();
+  if(!prefs.history) prefs.history = [];
+  prefs.history.push({ ts: now.toISOString(), type: type==='full'?'manual':'manual', label });
+  if(prefs.history.length > 50) prefs.history = prefs.history.slice(-50);
+  localStorage.setItem('yt2_backup_prefs', JSON.stringify(prefs));
+
+  // Reset nav button highlight
+  const btn = g('backupNavBtn');
+  if(btn) { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; }
+
+  toast(`✓ Backup downloaded: ${filename}`, 'ok');
+  renderBackupModal();
+}
+
+function loadRestoreFile(input) {
+  const file = input.files[0]; if(!file) return;
+  g('restoreFileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      _restoreData = data;
+      // Show preview
+      const info = [];
+      if(data.recv)           info.push(`📥 Receipts: <strong>${data.recv.length}</strong> entries`);
+      if(data.disp)           info.push(`📤 Dispatches: <strong>${data.disp.length}</strong> entries`);
+      if(data.master)         info.push(`📋 Master Data: companies, counts, blends`);
+      if(data.jobRates)       info.push(`💰 Job Rates: <strong>${data.jobRates.length}</strong> entries`);
+      if(data.completedLots)  info.push(`✓ Completed Lots: <strong>${data.completedLots.length}</strong>`);
+      if(data.pkgRecv)        info.push(`🧴 Pkg Receipts: <strong>${data.pkgRecv.length}</strong>`);
+      if(data.pkgDisp)        info.push(`🧴 Pkg Dispatches: <strong>${data.pkgDisp.length}</strong>`);
+      const exportDate = data.exportedAt ? new Date(data.exportedAt).toLocaleString('en-IN') : 'Unknown date';
+      g('restorePreviewContent').innerHTML = `<div style="color:var(--text3);margin-bottom:6px;font-size:11px;">Backup from: ${exportDate}</div>` + info.map(i=>`<div>• ${i}</div>`).join('');
+      g('restorePreview').style.display = '';
+    } catch(err) {
+      toast('Invalid backup file — could not parse JSON', 'err');
+      _restoreData = null;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function cancelRestore() {
+  _restoreData = null;
+  g('restorePreview').style.display = 'none';
+  g('restoreFileName').textContent = 'No file selected';
+  g('restoreFile').value = '';
+}
+
+function confirmRestore() {
+  if(!_restoreData) return;
+  // First download a backup of current data
+  downloadBackup('full');
+  // Then restore
+  setTimeout(() => {
+    const d = _restoreData;
+    if(d.recv)           { recv = d.recv; }
+    if(d.disp)           { disp = d.disp; }
+    if(d.master)         { master = {...master, ...d.master}; }
+    if(d.jobRates)       { jobRates = d.jobRates; saveJobRatesLocal(); }
+    if(d.pkgRecv)        { pkgRecv = d.pkgRecv; }
+    if(d.pkgDisp)        { pkgDisp = d.pkgDisp; }
+    if(d.packedData)     { packedData = d.packedData; }
+    if(d.completedLots)  { completedLots = new Set(d.completedLots); }
+    saveLocal();
+    savePkgLocal();
+    saveBackupPrefs();
+    populateAll(); renderAll();
+    cancelRestore();
+    closeModal('backupModal');
+    toast('✓ Data restored successfully from backup!', 'ok');
+    // Record restore in history
+    const prefs = getBackupPrefs();
+    if(!prefs.history) prefs.history=[];
+    prefs.history.push({ ts:new Date().toISOString(), type:'restore', label:`Restored from backup (${new Date(d.exportedAt||0).toLocaleDateString('en-IN')})` });
+    localStorage.setItem('yt2_backup_prefs', JSON.stringify(prefs));
+    _restoreData = null;
+  }, 500);
+}
 
 // ═══════════════════════════════════════════════
 // LOT STATUS DATE RANGE CHIPS
@@ -3823,6 +4087,7 @@ const LOT_COLS = [
   { key:'count',       label:'Count',            def:true  },
   { key:'tpi',         label:'TPI',              def:true  },
   { key:'blend',       label:'Blend',            def:false },
+  { key:'sct',         label:'Single Cone Tip',  def:false },
   { key:'dct',         label:'Double Cone Tip',  def:false },
   { key:'recvDate',    label:'Recv Date',         def:true  },
   { key:'ageing',      label:'Ageing (days)',     def:true  },
@@ -3928,10 +4193,11 @@ function buildLotData() {
     let cs;
     if(completedLots.has(l.lotNo)) cs='Completed';
     else if(l.status==='Hold') cs='Hold';
-    else if(balKg<=0.5 && l.returnKg>0 && l.dispKg===0) cs='Returned';
+    else if(l.returnKg>0 && l.dispKg===0) cs='Returned';
     else if(l.dispKg===0 && l.returnKg===0) cs='Received';
     else if(allowed>0 && shortagePct<=allowed) cs='Completed';
     else if(balKg<=0.5) cs='Fully Dispatched';
+    else if(l.status==='In Process') cs='In Process';
     else cs='Partial Dispatch';
     return{...l, netRecvKg, netRecvBags, balKg, balBags, pct, shortagePct, allowed, cs, ageing, ageColor};
   });
@@ -3952,7 +4218,7 @@ function buildLots() {
     if(!lots[r.lotNo]) lots[r.lotNo]={
       lotNo:r.lotNo, altLot:r.altLot||'', company:r.company, shade:r.shade,
       count:r.count, tpi:r.tpi, blend:r.blend, date:r.date, firstDate:r.date,
-      doubleConeTip:r.doubleConeTip||'',
+      doubleConeTip:r.doubleConeTip||'', singleConeTip:r.singleConeTip||'',
       recvKg:0, recvBags:0,
       returnKg:0, returnBags:0,
       dispKg:0, dispBags:0,
@@ -3967,6 +4233,7 @@ function buildLots() {
     if(r.date < lots[r.lotNo].firstDate) lots[r.lotNo].firstDate = r.date;
     // Pick up doubleConeTip if not yet set
     if(!lots[r.lotNo].doubleConeTip && r.doubleConeTip) lots[r.lotNo].doubleConeTip = r.doubleConeTip;
+    if(!lots[r.lotNo].singleConeTip && r.singleConeTip) lots[r.lotNo].singleConeTip = r.singleConeTip;
   });
 
   // Build from dispatches — split R-Return vs D/S
@@ -3991,7 +4258,12 @@ function buildLots() {
     }
   });
 
-  let rows = Object.values(lots).map(l=>{
+  // Only include lots that still have receipts (not deleted)
+  const activeRecvLots = new Set(recv.filter(r=>!r.isPacking).map(r=>r.lotNo).filter(Boolean));
+
+  let rows = Object.values(lots)
+    .filter(l => activeRecvLots.has(l.lotNo))
+    .map(l=>{
     // Net received = received − returned
     const netRecvKg   = Math.max(0, l.recvKg - l.returnKg);
     const netRecvBags = Math.max(0, l.recvBags - l.returnBags);
@@ -4053,6 +4325,7 @@ function buildLots() {
     { key:'count',     th:`<th>Count</th>` },
     { key:'tpi',       th:`<th>TPI</th>` },
     { key:'blend',     th:`<th>Blend</th>` },
+    { key:'sct',       th:`<th>Single Cone Tip</th>` },
     { key:'dct',       th:`<th>Double Cone Tip</th>` },
     { key:'recvDate',  th:`<th>Recv Date</th>` },
     { key:'ageing',    th:`<th class="num" style="color:var(--amber);">Ageing (days)</th>` },
@@ -4105,6 +4378,7 @@ function buildLots() {
       { key:'count',     td:`<td><span class="badge b-blue">${l.count||'—'}</span></td>` },
       { key:'tpi',       td:`<td>${l.tpi||'—'}</td>` },
       { key:'blend',     td:`<td style="color:var(--text3)">${l.blend||'—'}</td>` },
+      { key:'sct',       td:`<td>${l.singleConeTip||'—'}</td>` },
       { key:'dct',       td:`<td>${l.doubleConeTip||'—'}</td>` },
       { key:'recvDate',  td:`<td>${l.date}</td>` },
       { key:'ageing',    td:`<td class="num" style="font-weight:700;color:${l.ageColor};">${l.ageing !== null ? l.ageing + ' d' : '—'}</td>` },
@@ -4346,16 +4620,44 @@ async function loadPackedFromSheets() {
 function toggleLotComplete(lotNo) {
   if (completedLots.has(lotNo)) {
     completedLots.delete(lotNo);
-    saveLocal();
-    buildLots();
-    toast(`Lot ${lotNo} unmarked — status reverted`, '');
   } else {
     completedLots.add(lotNo);
-    saveLocal();
-    buildLots();
     appendRow('ChangeHistory',[new Date().toISOString(),'LotStatus','COMPLETED',`Lot ${lotNo} manually marked as Completed`]);
-    toast(`✓ Lot ${lotNo} marked as Completed`, 'ok');
   }
+  saveLocal();
+  buildLots();
+  syncCompletedToSheets();
+  toast(completedLots.has(lotNo) ? `✓ Lot ${lotNo} marked as Completed` : `Lot ${lotNo} unmarked`, 'ok');
+}
+
+async function syncCompletedToSheets() {
+  if(!cfg.sid||cfg.sid==='YOUR_SPREADSHEET_ID_HERE') return;
+  const token=await getValidToken(); if(!token) return;
+  try {
+    const val=JSON.stringify([...completedLots]);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent('MasterData!D1')}?valueInputOption=RAW`,
+      { method:'PUT', headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+        body:JSON.stringify({values:[['completed_lots',val,new Date().toISOString()]]}) }
+    );
+  } catch(e){ console.warn('syncCompleted:',e); }
+}
+
+async function loadCompletedFromSheets() {
+  if(!cfg.sid||cfg.sid==='YOUR_SPREADSHEET_ID_HERE') return;
+  const token=await getValidToken(); if(!token) return;
+  try {
+    const r=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sid}/values/${encodeURIComponent('MasterData!D1:F1')}`,
+      {headers:{Authorization:'Bearer '+token}}
+    );
+    const d=await r.json();
+    if(d.values?.[0]?.[1]){
+      const arr=JSON.parse(d.values[0][1]);
+      completedLots=new Set(arr);
+      saveLocal();
+    }
+  } catch(e){ console.warn('loadCompleted:',e); }
 }
 
 // ═══════════════════════════════════════════════
@@ -4740,14 +5042,15 @@ function populateAll() {
   fillSel('df_bld', master.blends, 'All');
   populateCoCheckboxes(); // dashboard multi-company
 
-  // Multi-select filters
-  msInit('rCo',  'All Companies', cos,       renderR);
-  msInit('dCo',  'All Companies', cos,       renderD);
-  msInit('lCo',  'All Companies', cos,       buildLots);
-  msInit('lSt',  'All Status',    statuses,  buildLots);
+  // Multi-select filters — use actual data values so filters match exactly
+  const lotStatuses = ['Received','In Process','Partial Dispatch','Fully Dispatched','Completed','Returned','Hold'];
+  msInit('rCo',  'All Companies', cos,           renderR);
+  msInit('dCo',  'All Companies', cos,           renderD);
+  msInit('lCo',  'All Companies', cos,           buildLots);
+  msInit('lSt',  'All Status',    lotStatuses,   buildLots);
   msInit('lCnt', 'All Counts',    master.counts, buildLots);
-  msInit('lTpi', 'All TPI',       tpis,      buildLots);
-  msInit('lShd', 'All Shades',    shds,      buildLots);
+  msInit('lTpi', 'All TPI',       tpis,          buildLots);
+  msInit('lShd', 'All Shades',    shds,          buildLots);
 }
 
 function uniq(arr){return[...new Set(arr.filter(Boolean))].sort();}
