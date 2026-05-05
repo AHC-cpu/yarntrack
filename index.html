@@ -2289,6 +2289,28 @@ async function updateSheetRow(tabName, rowId, rowData) {
     return r.ok;
   } catch(e) { return false; }
 }
+// Normalise any date string to YYYY-MM-DD for consistent comparison
+function normDate(raw) {
+  if(!raw) return '';
+  raw = raw.trim();
+  // Already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // DD/MM/YYYY or DD-MM-YYYY
+  const dmy = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+  // MM/DD/YYYY (US format - less common but handle it)
+  const mdy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(mdy) {
+    // Ambiguous — if first part > 12 it must be day, else assume DD/MM
+    if(parseInt(mdy[1]) > 12) return `${mdy[3]}-${mdy[2].padStart(2,'0')}-${mdy[1].padStart(2,'0')}`;
+    return `${mdy[3]}-${mdy[1].padStart(2,'0')}-${mdy[2].padStart(2,'0')}`;
+  }
+  // Try native Date parse as last resort
+  const d = new Date(raw);
+  if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  return raw; // return as-is if nothing works
+}
+
 async function syncSheets() {
   if (!cfg.sid || cfg.sid === 'YOUR_SPREADSHEET_ID_HERE') {
     setGS('err', 'Sheet ID not set'); return;
@@ -2331,7 +2353,7 @@ async function syncSheets() {
     if (rj.values?.length) {
       const seen = new Set();
       recv = rj.values.map(row => ({
-        id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',altLot:row[5]||'',
+        id:row[0]||'', date:normDate(row[1]), challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',altLot:row[5]||'',
         shade:row[6]||'',count:row[7]||'',tpi:row[8]||'',blend:row[9]||'',bags:+row[10]||0,weight:+row[11]||0,
         rate:+row[12]||0,vehicle:row[13]||'',status:row[14]||'Received',remarks:row[15]||'',
         allowedShortage:+row[17]||0,singleConeTip:row[18]||'',doubleConeTip:row[19]||'',
@@ -2345,7 +2367,7 @@ async function syncSheets() {
     if (dj.values?.length) {
       const seen = new Set();
       disp = dj.values.map(row => ({
-        id:row[0]||'',date:row[1]||'',challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',
+        id:row[0]||'', date:normDate(row[1]), challan:row[2]||'',company:row[3]||'',lotNo:row[4]||'',
         shade:row[5]||'',count:row[6]||'',tpi:row[7]||'',blend:row[8]||'',bags:+row[9]||0,weight:+row[10]||0,
         rate:+row[11]||0,form:row[12]||'D',plant:row[13]||'',vehicle:row[14]||'',remark:row[15]||'',
         isPacking: row[17]==='true'||row[17]===true||row[17]==='1'||row[17]==='yes'
@@ -2597,8 +2619,8 @@ function applyLotsDate() {
     const el=g(id); if(el) el.classList.remove('on');
   });
   // Validate: if only "To" is set, treat it as "up to that date"
-  const from = g('lDateFrom').value;
-  const to   = g('lDateTo').value;
+  const from = normDate(g('lDateFrom').value);
+  const to   = normDate(g('lDateTo').value);
   if(from && to && from > to) {
     toast('From date must be before To date','err'); return;
   }
@@ -4155,11 +4177,15 @@ function colVisible(key) {
   return lotColVis[key] !== false;
 }
 
-// Returns processed lot rows (no filtering, no rendering) — used by Excel/Print
-function buildLotData() {
+// Returns processed lot rows (no rendering) — used by Excel/Print
+// Pass lFrom/lTo to restrict receipt aggregation to that date range
+function buildLotData(lFrom, lTo) {
   const lots = {};
   recv.filter(r=>!r.isPacking).forEach(r=>{
     if(!r.lotNo) return;
+    const rDate = normDate(r.date);
+    if(lFrom && rDate < lFrom) return;
+    if(lTo   && rDate > lTo)   return;
     if(!lots[r.lotNo]) lots[r.lotNo]={
       lotNo:r.lotNo, altLot:r.altLot||'', company:r.company, shade:r.shade,
       count:r.count, tpi:r.tpi, blend:r.blend, date:r.date, firstDate:r.date,
@@ -4176,6 +4202,9 @@ function buildLotData() {
   });
   disp.filter(d=>!d.isPacking).forEach(d=>{
     if(!d.lotNo) return;
+    const dDate = normDate(d.date);
+    if(lFrom && dDate < lFrom) return;
+    if(lTo   && dDate > lTo)   return;
     if(!lots[d.lotNo]) lots[d.lotNo]={
       lotNo:d.lotNo, altLot:'', company:d.company, shade:d.shade,
       count:d.count, tpi:d.tpi, blend:d.blend, date:d.date, firstDate:d.date,
@@ -4217,11 +4246,21 @@ function buildLots() {
   const selCnt = msGet('lCnt');
   const selTpi = msGet('lTpi');
   const selShd = msGet('lShd');
+
+  // Read date range FIRST — normalise to YYYY-MM-DD regardless of browser locale
+  const lFrom = normDate(g('lDateFrom')?.value || '');
+  const lTo   = normDate(g('lDateTo')?.value   || '');
+
   const lots={};
 
-  // Build from receipts (exclude packing material)
+  // Build from receipts — only include receipts within date range
   recv.filter(r=>!r.isPacking).forEach(r=>{
     if(!r.lotNo) return;
+    // Skip receipts outside the selected date range
+    const rDate = normDate(r.date);
+    if(lFrom && rDate < lFrom) return;
+    if(lTo   && rDate > lTo)   return;
+
     if(!lots[r.lotNo]) lots[r.lotNo]={
       lotNo:r.lotNo, altLot:r.altLot||'', company:r.company, shade:r.shade,
       count:r.count, tpi:r.tpi, blend:r.blend, date:r.date, firstDate:r.date,
@@ -4236,17 +4275,17 @@ function buildLots() {
     if((r.allowedShortage||0) > lots[r.lotNo].allowedShortage)
       lots[r.lotNo].allowedShortage = r.allowedShortage||0;
     if(r.date > lots[r.lotNo].date) lots[r.lotNo].date = r.date;
-    // Track first (earliest) receipt date for ageing
     if(r.date < lots[r.lotNo].firstDate) lots[r.lotNo].firstDate = r.date;
-    // Pick up doubleConeTip if not yet set
     if(!lots[r.lotNo].doubleConeTip && r.doubleConeTip) lots[r.lotNo].doubleConeTip = r.doubleConeTip;
     if(!lots[r.lotNo].singleConeTip && r.singleConeTip) lots[r.lotNo].singleConeTip = r.singleConeTip;
   });
 
-  // Build from dispatches — split R-Return vs D/S
-  // Build from dispatches (exclude packing material)
+  // Build from dispatches — only within date range
   disp.filter(d=>!d.isPacking).forEach(d=>{
     if(!d.lotNo) return;
+    const dDate = normDate(d.date);
+    if(lFrom && dDate < lFrom) return;
+    if(lTo   && dDate > lTo)   return;
     if(!lots[d.lotNo]) lots[d.lotNo]={
       lotNo:d.lotNo, altLot:'', company:d.company, shade:d.shade,
       count:d.count, tpi:d.tpi, blend:d.blend, date:d.date, firstDate:d.date,
@@ -4255,11 +4294,9 @@ function buildLots() {
       dispKg:0, dispBags:0, status:'Received', allowedShortage:0
     };
     if(d.form === 'R') {
-      // Return → deduct from received
       lots[d.lotNo].returnKg   += d.weight;
       lots[d.lotNo].returnBags += d.bags;
     } else {
-      // Doubled / Sample / Other → actual dispatch
       lots[d.lotNo].dispKg   += d.weight;
       lots[d.lotNo].dispBags += d.bags;
     }
@@ -4309,11 +4346,6 @@ function buildLots() {
   if(selCnt.length) rows=rows.filter(r=>selCnt.includes(r.count));
   if(selTpi.length) rows=rows.filter(r=>selTpi.includes(r.tpi));
   if(selShd.length) rows=rows.filter(r=>selShd.includes(r.shade));
-  // Date range filter — filter by first receipt date
-  const lFrom = g('lDateFrom')?.value;
-  const lTo   = g('lDateTo')?.value;
-  if(lFrom) rows = rows.filter(r=>(r.firstDate||r.date) >= lFrom);
-  if(lTo)   rows = rows.filter(r=>(r.firstDate||r.date) <= lTo);
   // Hide completed lots unless checkbox is checked
   const showCompleted = g('showCompletedLots')?.checked;
   if(!showCompleted) rows=rows.filter(r=>r.cs!=='Completed');
@@ -5865,13 +5897,12 @@ function downloadExcel(tab) {
   } else if (tab === 'lots') {
     filename = `LotStatus_${today()}.csv`;
     const cv = k => lotColVis[k] !== false;
-    // Build from data directly
-    const lotData = buildLotData();
+    const lFrom  = normDate(g('lDateFrom')?.value||''), lTo = normDate(g('lDateTo')?.value||'');
+    const lotData = buildLotData(lFrom, lTo);
     const showCompleted = g('showCompletedLots')?.checked;
     const selCo  = msGet('lCo'), selSt=msGet('lSt'), selCnt=msGet('lCnt');
     const selTpi = msGet('lTpi'), selShd=msGet('lShd');
     const srch   = g('srchL').value.toLowerCase();
-    const lFrom  = g('lDateFrom')?.value, lTo = g('lDateTo')?.value;
     let lotRows  = lotData;
     if(!showCompleted) lotRows = lotRows.filter(l=>l.cs!=='Completed');
     if(srch)       lotRows = lotRows.filter(l=>(l.lotNo+l.company+(l.altLot||'')).toLowerCase().includes(srch));
@@ -5880,8 +5911,6 @@ function downloadExcel(tab) {
     if(selCnt.length) lotRows = lotRows.filter(l=>selCnt.includes(l.count));
     if(selTpi.length) lotRows = lotRows.filter(l=>selTpi.includes(l.tpi));
     if(selShd.length) lotRows = lotRows.filter(l=>selShd.includes(l.shade));
-    if(lFrom) lotRows = lotRows.filter(l=>(l.firstDate||l.date)>=lFrom);
-    if(lTo)   lotRows = lotRows.filter(l=>(l.firstDate||l.date)<=lTo);
 
     // Build headers based on visible columns only
     const colMap = [
@@ -6073,9 +6102,9 @@ function printTab(tab) {
     const selTpi=msGet('lTpi'), selShd=msGet('lShd');
     const srch=g('srchL').value.toLowerCase();
     const showCompleted=g('showCompletedLots')?.checked;
-    const lFrom=g('lDateFrom')?.value, lTo=g('lDateTo')?.value;
+    const lFrom=normDate(g('lDateFrom')?.value||''), lTo=normDate(g('lDateTo')?.value||'');
     sub = [(selCo.length?selCo.join(', '):'All Companies'), lFrom&&lTo?`${lFrom} → ${lTo}`:lFrom?`From ${lFrom}`:lTo?`Up to ${lTo}`:''].filter(Boolean).join(' · ') || 'All Lots';
-    let lotRows = buildLotData();
+    let lotRows = buildLotData(lFrom, lTo);
     if(!showCompleted) lotRows=lotRows.filter(l=>l.cs!=='Completed');
     if(srch)       lotRows=lotRows.filter(l=>(l.lotNo+l.company).toLowerCase().includes(srch));
     if(selCo.length)  lotRows=lotRows.filter(l=>selCo.includes(l.company));
@@ -6083,8 +6112,6 @@ function printTab(tab) {
     if(selCnt.length) lotRows=lotRows.filter(l=>selCnt.includes(l.count));
     if(selTpi.length) lotRows=lotRows.filter(l=>selTpi.includes(l.tpi));
     if(selShd.length) lotRows=lotRows.filter(l=>selShd.includes(l.shade));
-    if(lFrom) lotRows=lotRows.filter(l=>(l.firstDate||l.date)>=lFrom);
-    if(lTo)   lotRows=lotRows.filter(l=>(l.firstDate||l.date)<=lTo);
     lotRows.sort((a,b)=>b.date.localeCompare(a.date));
     const totRecv=lotRows.reduce((s,l)=>s+l.recvKg,0);
     const totDisp=lotRows.reduce((s,l)=>s+l.dispKg,0);
